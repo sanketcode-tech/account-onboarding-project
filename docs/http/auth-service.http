@@ -1,0 +1,106 @@
+### Auth Service HTTP Tests
+### Base URL for local development
+@baseUrl = http://localhost:8081
+@contentType = application/json
+
+### ===== AUTHENTICATION ENDPOINTS =====
+
+### 1. Register a new user
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@northbridge.com",
+  "password": "SecurePass123!",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+
+### 2. Register another user for testing
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "jane.smith@northbridge.com",
+  "password": "SecurePass456!",
+  "firstName": "Jane",
+  "lastName": "Smith"
+}
+
+### 3. Register with invalid email
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "invalid-email",
+  "password": "SecurePass123!",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+
+### 4. Register with short password
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "email": "test@northbridge.com",
+  "password": "123",
+  "firstName": "Test",
+  "lastName": "User"
+}
+
+### 5. Login with valid credentials
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@northbridge.com",
+  "password": "SecurePass123!"
+}
+
+### Save token for next requests
+@token = token_from_above_response
+
+### 6. Login with invalid password
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@northbridge.com",
+  "password": "WrongPassword"
+}
+
+### 7. Login with non-existent user
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "nonexistent@northbridge.com",
+  "password": "SecurePass123!"
+}
+
+### 8. Get current user profile (requires JWT token from login response)
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZUBub3J0aGJyaWRnZS5jb20iLCJ1c2VySWQiOjEsImlhdCI6MTcyMzU0Mjc1MCwiZXhwIjoxNzIzNjI5MTUwfQ.placeholder
+
+### 9. Get profile without token (should fail)
+GET {{baseUrl}}/api/auth/me
+
+### 10. Get profile with invalid token
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer invalid.token.here
+
+### ===== H2 CONSOLE =====
+### Access H2 console (when enabled)
+### Open browser: http://localhost:8081/h2-console
+### JDBC URL: jdbc:h2:mem:authdb
+### Username: sa
+### Password: (leave empty)
+
+### ===== USAGE NOTES =====
+### 1. Copy the token from login response (step 5)
+### 2. Replace the token in step 8 with the actual token
+### 3. Or use the @token variable syntax in your HTTP client
+### 4. All endpoints validate input according to business rules
+### 5. Passwords are hashed with BCrypt for security
+

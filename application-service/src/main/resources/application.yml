@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: application-service
+
+  # MongoDB Atlas Configuration
+  data:
+    mongodb:
+      uri: "mongodb://sanketdhake33_db_user:root1@ac-zyg8vrh-shard-00-00.awdffnm.mongodb.net:27017,ac-zyg8vrh-shard-00-01.awdffnm.mongodb.net:27017,ac-zyg8vrh-shard-00-02.awdffnm.mongodb.net:27017/?ssl=true&replicaSet=atlas-m6gzoo-shard-0&authSource=admin&appName=ClusterJobPortal"
+      auto-index-creation: true
+  datasource:
+    url: jdbc:h2:mem:applicationdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: root
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+      show-sql: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        trace: false
+        web-allow-others: false
+
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:172.21.159.30:9092}}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:172.21.159.30:9092}}
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+
+server:
+  port: ${SERVER_PORT_APPLICATION:8082}
+  servlet:
+    context-path: /
+
+logging:
+  level:
+    root: INFO
+    com.northbridge: INFO
+    org.springframework.kafka: INFO
+
+# Placeholder - will use application-local.yml for local dev
+

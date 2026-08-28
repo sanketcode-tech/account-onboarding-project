@@ -1,0 +1,60 @@
+{
+  "components": [
+    {
+      "label": "Applicant Name",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_15mole5",
+        "columns": null
+      },
+      "id": "Field_16cug6w",
+      "key": "applicantName",
+      "readonly": false
+    },
+    {
+      "label": "Email",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_16ljigi",
+        "columns": null
+      },
+      "id": "Field_15pwbrd",
+      "key": "email",
+      "validate": {
+        "validationType": "email"
+      },
+      "properties": {}
+    },
+    {
+      "label": "Status",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_14iamyi",
+        "columns": null
+      },
+      "id": "Field_1spoyva",
+      "key": "status",
+      "disabled": false,
+      "readonly": false
+    },
+    {
+      "label": "Button",
+      "action": "submit",
+      "type": "button",
+      "layout": {
+        "row": "Row_17b29jt",
+        "columns": null
+      },
+      "id": "Field_09ducbb"
+    }
+  ],
+  "type": "default",
+  "id": "account_opening",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.9.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.48.0"
+  },
+  "schemaVersion": 19
+}

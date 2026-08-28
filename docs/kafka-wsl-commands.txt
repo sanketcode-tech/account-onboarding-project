@@ -1,0 +1,248 @@
+================================================================================
+Kafka Setup & Management Commands for WSL (Windows Subsystem for Linux)
+================================================================================
+
+This file contains all WSL-compatible (.sh) commands to set up, manage, and
+test local Kafka (KRaft mode, no Zookeeper).
+
+Assumptions:
+- Kafka extracted to ~/kafka (e.g., /home/username/kafka)
+- WSL terminal (Ubuntu/Debian distro)
+- Port 9092 available for Kafka broker
+
+================================================================================
+STEP 1: Download and Extract Kafka
+================================================================================
+
+# From WSL terminal
+cd ~
+wget https://archive.apache.org/dist/kafka/3.6.0/kafka_2.13-3.6.0.tgz
+tar -xzf kafka_2.13-3.6.0.tgz
+mv kafka_2.13-3.6.0 kafka
+cd kafka
+
+# Verify extraction
+ls -la bin/
+
+# Expected output should include:
+# kafka-server-start.sh
+# kafka-topics.sh
+# kafka-console-consumer.sh
+# etc.
+
+================================================================================
+STEP 2: Format Kafka Storage (KRaft mode) — Run ONCE
+================================================================================
+
+# Generate a unique cluster ID
+CLUSTER_ID=$(./bin/kafka-storage.sh random-uuid)
+echo "Generated Cluster ID: $CLUSTER_ID"
+
+# Format the storage directory (required once before first start)
+./bin/kafka-storage.sh format \
+  -t "$CLUSTER_ID" \
+  -c config/kraft/server.properties
+
+# Expected output:
+# Formatting /tmp/kraft-combined-logs with cluster id: <uuid>
+# ...
+# INFO Kafka server storage formatted successfully.
+
+# NOTE: If you need to reset Kafka (clean slate), run:
+# rm -rf /tmp/kraft-combined-logs
+
+================================================================================
+STEP 3: Start Kafka Broker (KRaft mode)
+================================================================================
+
+# Keep this running in a dedicated terminal window
+cd ~/kafka
+./bin/kafka-server-start.sh config/kraft/server.properties
+
+# Expected logs:
+# [2024-08-11 10:00:00] INFO KafkaRaftClient: Initial leader: [id:0, epoch:0]
+# [2024-08-11 10:00:01] INFO KafkaServer: started (kafka.server.KafkaServer)
+# [2024-08-11 10:00:01] INFO Broker: Broker 0 started
+
+# The broker will keep running until you press Ctrl+C
+
+================================================================================
+STEP 4: Create Kafka Topics (Manual CLI)
+================================================================================
+
+# Open a new terminal window (keep broker running in another terminal)
+cd ~/kafka
+
+# Topic 1: application.submitted (1 partition)
+./bin/kafka-topics.sh --create \
+  --topic application.submitted \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1
+
+# Expected output:
+# Created topic application.submitted.
+
+# Topic 2: offer.ready (1 partition)
+./bin/kafka-topics.sh --create \
+  --topic offer.ready \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1
+
+# Topic 3: offer.accepted (1 partition)
+./bin/kafka-topics.sh --create \
+  --topic offer.accepted \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1
+
+# Topic 4: document.signed (1 partition)
+./bin/kafka-topics.sh --create \
+  --topic document.signed \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1
+
+# Topic 5: account.activated (1 partition)
+./bin/kafka-topics.sh --create \
+  --topic account.activated \
+  --bootstrap-server localhost:9092 \
+  --partitions 1 \
+  --replication-factor 1
+
+================================================================================
+STEP 5: Verify Topics Created
+================================================================================
+
+cd ~/kafka
+
+# List all topics
+./bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Expected output:
+# account.activated
+# application.submitted
+# document.signed
+# offer.accepted
+# offer.ready
+
+# Get details of a specific topic
+./bin/kafka-topics.sh --describe --topic application.submitted --bootstrap-server localhost:9092
+
+# Expected output (example):
+# Topic: application.submitted	TopicId: ... Partitions: 1	Replicas: 0	Isr: 0
+
+================================================================================
+STEP 6: Test Kafka with Console Producer/Consumer
+================================================================================
+
+# Terminal 1 (Consumer): Listen to application.submitted topic
+cd ~/kafka
+./bin/kafka-console-consumer.sh --topic application.submitted --from-beginning --bootstrap-server localhost:9092
+
+# Terminal 2 (Producer): Send a test message
+cd ~/kafka
+./bin/kafka-console-producer.sh --topic application.submitted --bootstrap-server localhost:9092
+
+# Type a test message in the producer terminal and press Enter:
+# {"applicationId":"test-123","customerId":"cust-001","productType":"CURRENT_ACCOUNT","createdAt":"2024-08-11T10:00:00Z"}
+
+# The consumer terminal should receive the message immediately.
+
+# To exit:
+# Producer: Press Ctrl+C
+# Consumer: Press Ctrl+C
+
+================================================================================
+STEP 7: Troubleshooting
+================================================================================
+
+# Check if Kafka broker is running on port 9092
+nc -zv localhost 9092
+# Expected output: Connection to localhost 9092 port [tcp/*] succeeded!
+
+# Kill any existing Kafka process (if stuck)
+pkill -f kafka-server-start
+
+# Check Kafka logs for errors
+tail -f /tmp/kraft-combined-logs/logs/server.log
+
+# Reset Kafka to a clean state (deletes all topics and messages)
+rm -rf /tmp/kraft-combined-logs
+# Then re-run STEP 2 (format storage) before starting broker again
+
+# Check broker connectivity from Java services
+# Services should log connection attempts; verify logs for:
+# org.apache.kafka.clients.NetworkClient: [...] bootstrap-server connected
+
+================================================================================
+STEP 8: Monitoring Kafka Metrics (Optional)
+================================================================================
+
+# View consumer group information
+cd ~/kafka
+./bin/kafka-consumer-groups.sh --list --bootstrap-server localhost:9092
+
+# Get consumer group details
+./bin/kafka-consumer-groups.sh --describe --group notification-service-group --bootstrap-server localhost:9092
+
+# View topic offsets
+./bin/kafka-run-class.sh kafka.tools.GetOffsetShell \
+  --broker-list localhost:9092 \
+  --topic application.submitted \
+  --time -1
+
+================================================================================
+REFERENCE: Common Kafka Commands
+================================================================================
+
+# Create topic (with 3 partitions, replication-factor 1)
+./bin/kafka-topics.sh --create \
+  --topic <topic-name> \
+  --bootstrap-server localhost:9092 \
+  --partitions 3 \
+  --replication-factor 1
+
+# Delete topic
+./bin/kafka-topics.sh --delete \
+  --topic <topic-name> \
+  --bootstrap-server localhost:9092
+
+# List topics
+./bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Describe topic
+./bin/kafka-topics.sh --describe --topic <topic-name> --bootstrap-server localhost:9092
+
+# Produce message (interactive)
+./bin/kafka-console-producer.sh \
+  --topic <topic-name> \
+  --bootstrap-server localhost:9092
+
+# Consume messages (from beginning)
+./bin/kafka-console-consumer.sh \
+  --topic <topic-name> \
+  --from-beginning \
+  --bootstrap-server localhost:9092
+
+# Consume messages (latest only)
+./bin/kafka-console-consumer.sh \
+  --topic <topic-name> \
+  --bootstrap-server localhost:9092
+
+================================================================================
+QUICK START CHECKLIST
+================================================================================
+
+[ ] 1. Extract Kafka: tar -xzf kafka_2.13-3.6.0.tgz
+[ ] 2. Format storage: ./bin/kafka-storage.sh format -t <uuid> -c config/kraft/server.properties
+[ ] 3. Start broker: ./bin/kafka-server-start.sh config/kraft/server.properties (Terminal 1)
+[ ] 4. Create all 5 topics: ./bin/kafka-topics.sh --create ... (Terminal 2+)
+[ ] 5. Verify topics: ./bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+[ ] 6. Test with producer/consumer (Terminal 3+)
+
+Once all steps pass, your local Kafka is ready for use by the microservices.
+
+================================================================================
+

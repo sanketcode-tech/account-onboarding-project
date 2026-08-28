@@ -1,0 +1,129 @@
+# ============================================================
+# Spring Boot Application Configuration (Local Development)
+# ============================================================
+# Copy this to each service's src/main/resources/application-local.yml
+# This will override application.yml when SPRING_PROFILES_ACTIVE=local
+
+spring:
+  application:
+    name: northbridge-onboarding
+
+  # ============================================================
+  # Kafka Configuration (Local)
+  # ============================================================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.northbridge.common.events"
+
+  # ============================================================
+  # H2 Database (In-Memory, Local Dev)
+  # ============================================================
+  datasource:
+    url: jdbc:h2:mem:northbridge;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+
+  # ============================================================
+  # H2 Console (Optional — for debugging)
+  # ============================================================
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # ============================================================
+  # JPA / Hibernate Configuration
+  # ============================================================
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update  # Auto-create/update tables on startup (dev only!)
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # ============================================================
+  # MongoDB Atlas Configuration (For services that need MongoDB)
+  # ============================================================
+  data:
+    mongodb:
+      uri: mongodb+srv://sanketdhake33_db_user:root1@clusterjobportal.awdffnm.mongodb.net/onboarding?retryWrites=true&w=majority&appName=ClusterJobPortal
+      # Connection pool settings for cloud
+      auto-index-creation: true
+
+# ============================================================
+# Camunda 8 SaaS (Zeebe) Configuration
+# ============================================================
+# Only add this to onboarding-service's application-local.yml
+camunda:
+  client:
+    mode: saas
+    cluster-id: ${CAMUNDA_CLUSTER_ID:placeholder-cluster-id}
+    region: ${CAMUNDA_REGION:us-1}
+    client-id: ${CAMUNDA_CLIENT_ID:placeholder-client-id}
+    client-secret: ${CAMUNDA_CLIENT_SECRET:placeholder-client-secret}
+    # Connection timeout (optional)
+    gateway-timeout: 60s
+
+# ============================================================
+# Server Configuration
+# ============================================================
+server:
+  port: ${SERVER_PORT:8080}  # Overridden per service (8081, 8082, etc.)
+  servlet:
+    context-path: /
+
+# ============================================================
+# Logging Configuration
+# ============================================================
+logging:
+  level:
+    root: INFO
+    com.northbridge: INFO  # Set to DEBUG for more detailed logs
+    org.springframework.kafka: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN  # Set to DEBUG to see SQL queries
+
+# ============================================================
+# Application-Specific Settings
+# ============================================================
+
+# CORS Configuration (Externalized)
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
+
+  # JWT Configuration (for auth-service)
+  jwt:
+    secret: ${AUTH_JWT_SECRET:placeholder-jwt-secret-change-this}
+    expiration-seconds: ${AUTH_JWT_EXPIRATION_SECONDS:3600}
+
+# ============================================================
+# Actuator Endpoints (for monitoring, optional)
+# ============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+

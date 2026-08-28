@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1avkhgv" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.48.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="current-account-onboarding" name="Current Account Onboarding" isExecutable="true">
+    <bpmn:extensionElements>
+      <zeebe:versionTag value="1.0" />
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Event_ApplicationSubmitted" name="Application Submitted">
+      <bpmn:outgoing>Flow_0ztr1ys</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Task_ValidateApplication" name="Validate Application">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="validate-application" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0ztr1ys</bpmn:incoming>
+      <bpmn:outgoing>Flow_1q6sog8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="BoundaryEvent_ValidationFailed" name="Validation Failed" attachedToRef="Task_ValidateApplication">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;VALIDATION_FAILED&#34;" target="declineReason" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_0tg9uf6</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDef_ValidationFailed" errorRef="Error_ValidationFailed" />
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_0ztr1ys" sourceRef="Event_ApplicationSubmitted" targetRef="Task_ValidateApplication" />
+    <bpmn:serviceTask id="Task_PublishOffer" name="Publish Offer Ready Event">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="publish-offer" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1q6sog8</bpmn:incoming>
+      <bpmn:outgoing>Flow_0b00l17</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1q6sog8" sourceRef="Task_ValidateApplication" targetRef="Task_PublishOffer" />
+    <bpmn:eventBasedGateway id="Gateway_0ex282m" name="Offer Response?">
+      <bpmn:incoming>Flow_0b00l17</bpmn:incoming>
+      <bpmn:outgoing>Flow_0d5ux9b</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0csqhn1</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:sequenceFlow id="Flow_0b00l17" sourceRef="Task_PublishOffer" targetRef="Gateway_0ex282m" />
+    <bpmn:intermediateCatchEvent id="Event_WaitOfferAccepted" name="Offer Accepted">
+      <bpmn:extensionElements>
+        <zeebe:subscription correlationKey="=applicationId" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0d5ux9b</bpmn:incoming>
+      <bpmn:outgoing>Flow_1yufbvf</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_OfferAccepted" messageRef="Message_OfferAccepted" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_0d5ux9b" sourceRef="Gateway_0ex282m" targetRef="Event_WaitOfferAccepted" />
+    <bpmn:serviceTask id="Task_PublishDocument" name="Publish Document Signing Request">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="publish-document" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1yufbvf</bpmn:incoming>
+      <bpmn:outgoing>Flow_0m3jb2o</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1yufbvf" sourceRef="Event_WaitOfferAccepted" targetRef="Task_PublishDocument" />
+    <bpmn:eventBasedGateway id="Gateway_0xivmcz" name="Document Response?">
+      <bpmn:incoming>Flow_0m3jb2o</bpmn:incoming>
+      <bpmn:outgoing>Flow_07h62qy</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0nl12tw</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:sequenceFlow id="Flow_0m3jb2o" sourceRef="Task_PublishDocument" targetRef="Gateway_0xivmcz" />
+    <bpmn:intermediateCatchEvent id="Event_WaitDocumentSigned" name="Document Signed">
+      <bpmn:extensionElements>
+        <zeebe:subscription correlationKey="=applicationId" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_07h62qy</bpmn:incoming>
+      <bpmn:outgoing>Flow_13pi4jm</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDef_DocumentSigned" messageRef="Message_DocumentSigned" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_07h62qy" sourceRef="Gateway_0xivmcz" targetRef="Event_WaitDocumentSigned" />
+    <bpmn:userTask id="Task_SigningCeremony" name="Signing Ceremony Review">
+      <bpmn:documentation>Review and approve the document signing ceremony</bpmn:documentation>
+      <bpmn:extensionElements>
+        <modeler:form key="signing-ceremony-form" />
+        <zeebe:formDefinition formId="signing-ceremony-form" />
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_13pi4jm</bpmn:incoming>
+      <bpmn:outgoing>Flow_0t4xza4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="BoundaryEvent_SigningCeremonyTimeout" name="Signing Ceremony Overdue (48h)" attachedToRef="Task_SigningCeremony">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;SIGNING_CEREMONY_TIMEOUT&#34;" target="declineReason" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_1dlwxmo</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDef_SigningCeremonyTimeout">
+        <bpmn:timeDuration>PT48H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_13pi4jm" sourceRef="Event_WaitDocumentSigned" targetRef="Task_SigningCeremony" />
+    <bpmn:userTask id="Task_ProvisioningApproval" name="Provisioning Approval">
+      <bpmn:documentation>Approve account provisioning and activation</bpmn:documentation>
+      <bpmn:extensionElements>
+        <modeler:form key="provisioning-approval-form" />
+        <zeebe:formDefinition formId="provisioning-approval-form" />
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0ntjzt7</bpmn:incoming>
+      <bpmn:outgoing>Flow_1bfmf8h</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="BoundaryEvent_ProvisioningTimeout" name="Provisioning Approval Overdue (24h)" attachedToRef="Task_ProvisioningApproval">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;PROVISIONING_APPROVAL_TIMEOUT&#34;" target="declineReason" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_054g02o</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDef_ProvisioningTimeout">
+        <bpmn:timeDuration>PT24H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_0t4xza4" sourceRef="Task_SigningCeremony" targetRef="Gateway_1avtep0" />
+    <bpmn:serviceTask id="Task_ActivateAccount" name="Activate Bank Account">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="activate-account" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1yig9i0</bpmn:incoming>
+      <bpmn:outgoing>Flow_1kdqb4h</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="BoundaryEvent_ActivationFailed" name="Activation Failed" attachedToRef="Task_ActivateAccount">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;ACCOUNT_ACTIVATION_FAILED&#34;" target="declineReason" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_1ebnzc5</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDef_ActivationFailed" errorRef="Error_ActivationFailed" />
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="Task_PublishActivated" name="Publish Account Activated Event">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="publish-activated" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1kdqb4h</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ldj9fk</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1bfmf8h" sourceRef="Task_ProvisioningApproval" targetRef="Gateway_1dbkhuu" />
+    <bpmn:sequenceFlow id="Flow_1kdqb4h" sourceRef="Task_ActivateAccount" targetRef="Task_PublishActivated" />
+    <bpmn:endEvent id="Event_Success" name="Onboarding Complete">
+      <bpmn:incoming>Flow_0ldj9fk</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0ldj9fk" sourceRef="Task_PublishActivated" targetRef="Event_Success" />
+    <bpmn:intermediateCatchEvent id="Event_OfferTimeout" name="Offer Expired (72h)">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;OFFER_EXPIRED&#34;" target="declineReason" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0csqhn1</bpmn:incoming>
+      <bpmn:outgoing>Flow_0atd9lm</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDef_OfferTimeout">
+        <bpmn:timeDuration>PT72H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Event_DocumentTimeout" name="Document Signing Expired (48h)">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:output source="=&#34;DOCUMENT_SIGNING_EXPIRED&#34;" target="declineReason" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0nl12tw</bpmn:incoming>
+      <bpmn:outgoing>Flow_0wvldrk</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDef_DocumentTimeout">
+        <bpmn:timeDuration>PT48H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_0csqhn1" sourceRef="Gateway_0ex282m" targetRef="Event_OfferTimeout" />
+    <bpmn:sequenceFlow id="Flow_0nl12tw" sourceRef="Gateway_0xivmcz" targetRef="Event_DocumentTimeout" />
+    <bpmn:serviceTask id="Task_PublishDeclined" name="Publish Application Declined Event">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="publish-declined" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0tg9uf6</bpmn:incoming>
+      <bpmn:incoming>Flow_0atd9lm</bpmn:incoming>
+      <bpmn:incoming>Flow_0wvldrk</bpmn:incoming>
+      <bpmn:incoming>Flow_1dlwxmo</bpmn:incoming>
+      <bpmn:incoming>Flow_054g02o</bpmn:incoming>
+      <bpmn:incoming>Flow_1ebnzc5</bpmn:incoming>
+      <bpmn:incoming>Flow_11jamru</bpmn:incoming>
+      <bpmn:incoming>Flow_1bhw3zg</bpmn:incoming>
+      <bpmn:outgoing>Flow_10emp5v</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="Event_Declined" name="Application Declined">
+      <bpmn:incoming>Flow_10emp5v</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_10emp5v" sourceRef="Task_PublishDeclined" targetRef="Event_Declined" />
+    <bpmn:sequenceFlow id="Flow_0tg9uf6" sourceRef="BoundaryEvent_ValidationFailed" targetRef="Task_PublishDeclined" />
+    <bpmn:sequenceFlow id="Flow_0atd9lm" sourceRef="Event_OfferTimeout" targetRef="Task_PublishDeclined" />
+    <bpmn:sequenceFlow id="Flow_0wvldrk" sourceRef="Event_DocumentTimeout" targetRef="Task_PublishDeclined" />
+    <bpmn:sequenceFlow id="Flow_1dlwxmo" sourceRef="BoundaryEvent_SigningCeremonyTimeout" targetRef="Task_PublishDeclined" />
+    <bpmn:sequenceFlow id="Flow_054g02o" sourceRef="BoundaryEvent_ProvisioningTimeout" targetRef="Task_PublishDeclined" />
+    <bpmn:sequenceFlow id="Flow_1ebnzc5" sourceRef="BoundaryEvent_ActivationFailed" targetRef="Task_PublishDeclined" />
+    <bpmn:exclusiveGateway id="Gateway_1avtep0" name="Signing Approved?" default="Flow_11jamru">
+      <bpmn:incoming>Flow_0t4xza4</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ntjzt7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_11jamru</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0ntjzt7" name="yes" sourceRef="Gateway_1avtep0" targetRef="Task_ProvisioningApproval">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=signingDecision="APPROVED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_11jamru" sourceRef="Gateway_1avtep0" targetRef="Task_PublishDeclined" />
+    <bpmn:exclusiveGateway id="Gateway_1dbkhuu" name="Provisioning Approved?" default="Flow_1bhw3zg">
+      <bpmn:incoming>Flow_1bfmf8h</bpmn:incoming>
+      <bpmn:outgoing>Flow_1yig9i0</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1bhw3zg</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1yig9i0" name="yes" sourceRef="Gateway_1dbkhuu" targetRef="Task_ActivateAccount">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=provisioningDecision="APPROVED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1bhw3zg" sourceRef="Gateway_1dbkhuu" targetRef="Task_PublishDeclined" />
+  </bpmn:process>
+  <bpmn:error id="Error_ValidationFailed" name="ValidationFailed" errorCode="VALIDATION_FAILED" />
+  <bpmn:message id="Message_OfferAccepted" name="OfferAccepted">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=applicationId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:message id="Message_DocumentSigned" name="DocumentSigned">
+    <bpmn:extensionElements>
+      <zeebe:subscription correlationKey="=applicationId" />
+    </bpmn:extensionElements>
+  </bpmn:message>
+  <bpmn:error id="Error_ActivationFailed" name="ActivationFailed" errorCode="ACTIVATION_FAILED" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="current-account-onboarding">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="Event_ApplicationSubmitted">
+        <dc:Bounds x="182" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="173" y="175" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ValidateApplication_di" bpmnElement="Task_ValidateApplication">
+        <dc:Bounds x="310" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="325" y="133" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PublishOffer_di" bpmnElement="Task_PublishOffer">
+        <dc:Bounds x="510" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="522" y="133" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_11dkhul_di" bpmnElement="Gateway_0ex282m">
+        <dc:Bounds x="675" y="125" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="658" y="101" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_WaitOfferAccepted_di" bpmnElement="Event_WaitOfferAccepted">
+        <dc:Bounds x="822" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="803" y="102" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PublishDocument_di" bpmnElement="Task_PublishDocument">
+        <dc:Bounds x="940" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="955" y="133" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0ol2t8m_di" bpmnElement="Gateway_0xivmcz">
+        <dc:Bounds x="1105" y="125" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1102" y="88" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_WaitDocumentSigned_di" bpmnElement="Event_WaitDocumentSigned">
+        <dc:Bounds x="1252" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1226" y="102" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_SigningCeremony_di" bpmnElement="Task_SigningCeremony">
+        <dc:Bounds x="1350" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1364" y="133" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_OfferTimeout_di" bpmnElement="Event_OfferTimeout">
+        <dc:Bounds x="682" y="282" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="578" y="293" width="94" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_DocumentTimeout_di" bpmnElement="Event_DocumentTimeout">
+        <dc:Bounds x="1112" y="292" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="971" y="296" width="131" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ProvisioningApproval_di" bpmnElement="Task_ProvisioningApproval">
+        <dc:Bounds x="1670" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1682" y="133" width="76" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1avtep0_di" bpmnElement="Gateway_1avtep0" isMarkerVisible="true">
+        <dc:Bounds x="1515" y="125" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1513" y="88" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1dbkhuu_di" bpmnElement="Gateway_1dbkhuu" isMarkerVisible="true">
+        <dc:Bounds x="1855" y="125" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1850" y="82" width="60" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ActivateAccount_di" bpmnElement="Task_ActivateAccount">
+        <dc:Bounds x="2010" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2023" y="133" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PublishActivated_di" bpmnElement="Task_PublishActivated">
+        <dc:Bounds x="2200" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2210" y="133" width="80" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Success_di" bpmnElement="Event_Success">
+        <dc:Bounds x="2402" y="132" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2391" y="175" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_PublishDeclined_di" bpmnElement="Task_PublishDeclined">
+        <dc:Bounds x="2010" y="360" width="100" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2020" y="373" width="80" height="54" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_Declined_di" bpmnElement="Event_Declined">
+        <dc:Bounds x="2232" y="382" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2223" y="425" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_SigningCeremonyTimeout_di" bpmnElement="BoundaryEvent_SigningCeremonyTimeout">
+        <dc:Bounds x="1382" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1394" y="211" width="91" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_ValidationFailed_di" bpmnElement="BoundaryEvent_ValidationFailed">
+        <dc:Bounds x="342" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="320" y="212" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_ProvisioningTimeout_di" bpmnElement="BoundaryEvent_ProvisioningTimeout">
+        <dc:Bounds x="1702" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1725" y="205" width="89" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BoundaryEvent_ActivationFailed_di" bpmnElement="BoundaryEvent_ActivationFailed">
+        <dc:Bounds x="2042" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2069" y="212" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0ztr1ys_di" bpmnElement="Flow_0ztr1ys">
+        <di:waypoint x="218" y="150" />
+        <di:waypoint x="310" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1q6sog8_di" bpmnElement="Flow_1q6sog8">
+        <di:waypoint x="410" y="150" />
+        <di:waypoint x="510" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0b00l17_di" bpmnElement="Flow_0b00l17">
+        <di:waypoint x="610" y="150" />
+        <di:waypoint x="675" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0d5ux9b_di" bpmnElement="Flow_0d5ux9b">
+        <di:waypoint x="725" y="150" />
+        <di:waypoint x="822" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0csqhn1_di" bpmnElement="Flow_0csqhn1">
+        <di:waypoint x="700" y="175" />
+        <di:waypoint x="700" y="282" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1yufbvf_di" bpmnElement="Flow_1yufbvf">
+        <di:waypoint x="858" y="150" />
+        <di:waypoint x="940" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0m3jb2o_di" bpmnElement="Flow_0m3jb2o">
+        <di:waypoint x="1040" y="150" />
+        <di:waypoint x="1105" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07h62qy_di" bpmnElement="Flow_07h62qy">
+        <di:waypoint x="1155" y="150" />
+        <di:waypoint x="1252" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0nl12tw_di" bpmnElement="Flow_0nl12tw">
+        <di:waypoint x="1130" y="175" />
+        <di:waypoint x="1130" y="292" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13pi4jm_di" bpmnElement="Flow_13pi4jm">
+        <di:waypoint x="1288" y="150" />
+        <di:waypoint x="1350" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0t4xza4_di" bpmnElement="Flow_0t4xza4">
+        <di:waypoint x="1450" y="150" />
+        <di:waypoint x="1515" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0atd9lm_di" bpmnElement="Flow_0atd9lm">
+        <di:waypoint x="700" y="318" />
+        <di:waypoint x="700" y="400" />
+        <di:waypoint x="2010" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0wvldrk_di" bpmnElement="Flow_0wvldrk">
+        <di:waypoint x="1130" y="328" />
+        <di:waypoint x="1130" y="400" />
+        <di:waypoint x="2010" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ntjzt7_di" bpmnElement="Flow_0ntjzt7">
+        <di:waypoint x="1565" y="150" />
+        <di:waypoint x="1670" y="150" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1609" y="132" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1bfmf8h_di" bpmnElement="Flow_1bfmf8h">
+        <di:waypoint x="1770" y="150" />
+        <di:waypoint x="1855" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11jamru_di" bpmnElement="Flow_11jamru">
+        <di:waypoint x="1540" y="175" />
+        <di:waypoint x="1540" y="400" />
+        <di:waypoint x="2010" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1yig9i0_di" bpmnElement="Flow_1yig9i0">
+        <di:waypoint x="1905" y="150" />
+        <di:waypoint x="2010" y="150" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1949" y="132" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1kdqb4h_di" bpmnElement="Flow_1kdqb4h">
+        <di:waypoint x="2110" y="150" />
+        <di:waypoint x="2200" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ldj9fk_di" bpmnElement="Flow_0ldj9fk">
+        <di:waypoint x="2300" y="150" />
+        <di:waypoint x="2402" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0tg9uf6_di" bpmnElement="Flow_0tg9uf6">
+        <di:waypoint x="360" y="208" />
+        <di:waypoint x="360" y="400" />
+        <di:waypoint x="2010" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1dlwxmo_di" bpmnElement="Flow_1dlwxmo">
+        <di:waypoint x="1400" y="208" />
+        <di:waypoint x="1400" y="400" />
+        <di:waypoint x="2010" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_054g02o_di" bpmnElement="Flow_054g02o">
+        <di:waypoint x="1720" y="208" />
+        <di:waypoint x="1720" y="400" />
+        <di:waypoint x="2010" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ebnzc5_di" bpmnElement="Flow_1ebnzc5">
+        <di:waypoint x="2060" y="208" />
+        <di:waypoint x="2060" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10emp5v_di" bpmnElement="Flow_10emp5v">
+        <di:waypoint x="2110" y="400" />
+        <di:waypoint x="2232" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1bhw3zg_di" bpmnElement="Flow_1bhw3zg">
+        <di:waypoint x="1880" y="175" />
+        <di:waypoint x="1880" y="400" />
+        <di:waypoint x="2010" y="400" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

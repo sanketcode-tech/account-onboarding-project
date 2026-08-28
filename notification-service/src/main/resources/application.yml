@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: notification-service
+
+server:
+  port: ${SERVER_PORT_NOTIFICATION:8085}
+  servlet:
+    context-path: /
+
+logging:
+  level:
+    root: INFO
+    com.northbridge: INFO
+
+# Placeholder - will use application-local.yml for local dev
+

@@ -1,0 +1,54 @@
+# Environment
+.env
+.env.local
+.env.*.local
+application-local.yml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build & Dependencies
+target/
+*.jar
+*.war
+*.ear
+*.class
+*.classpath
+.project
+.settings/
+.gradle/
+build/
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+
+# Node / Frontend
+node_modules/
+npm-debug.log
+yarn-error.log
+dist/
+
+# Kafka (local)
+/tmp/kraft-combined-logs/
+
+# Database
+*.db
+*.h2.db
+
+# Logs
+logs/
+*.log
+
+# OS
+Thumbs.db
+.Thumbs.db
+

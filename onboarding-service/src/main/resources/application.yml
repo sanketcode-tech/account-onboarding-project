@@ -1,0 +1,60 @@
+spring:
+  config:
+    import: "optional:file:../.env[.properties],optional:file:.env[.properties]"
+  application:
+    name: onboarding-service
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:172.21.159.30:9092}}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      retries: 3
+    consumer:
+      bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:172.21.159.30:9092}}
+      group-id: onboarding-service-group
+      auto-offset-reset: earliest
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+server:
+  port: ${SERVER_PORT_ONBOARDING:8083}
+  servlet:
+    context-path: /
+
+# ============================================================
+# Camunda 8 SaaS (Zeebe) Configuration
+# ============================================================
+camunda:
+  client:
+    cloud:
+      cluster-id: ${CAMUNDA_CLUSTER_ID:}
+      region: ${CAMUNDA_REGION:sin-2}
+    auth:
+      client-id: ${CAMUNDA_CLIENT_ID:}
+      client-secret: ${CAMUNDA_CLIENT_SECRET:}
+    deployment:
+      enabled: ${BPMN_DEPLOYMENT_ENABLED:false}
+
+# ============================================================
+# Process Deployment Configuration
+# ============================================================
+process:
+  deployer:
+    enabled: ${PROCESS_DEPLOYER_ENABLED:false}
+
+bpmn:
+  resource:
+    path: ${BPMN_RESOURCE_PATH:/bpmn/current-account-onboarding.bpmn}
+
+# ============================================================
+# Logging Configuration
+# ============================================================
+logging:
+  level:
+    root: INFO
+    com.northbridge: DEBUG
+    io.camunda.zeebe: INFO
+    org.springframework.kafka: INFO
+

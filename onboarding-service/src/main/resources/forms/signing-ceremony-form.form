@@ -1,0 +1,166 @@
+{
+  "components": [
+    {
+      "text": "### Contract Signing",
+      "id": "Form_Heading_1",
+      "type": "text",
+      "layout": {
+        "row": "Row_1",
+        "col": 16
+      }
+    },
+    {
+      "text": "##### Application Details",
+      "id": "Form_Subheading_1",
+      "type": "text",
+      "layout": {
+        "row": "Row_2",
+        "col": 16
+      }
+    },
+    {
+      "label": "Application ID",
+      "id": "Field_ApplicationId",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_3",
+        "col": 8
+      },
+      "key": "applicationId",
+      "description": "The unique identifier for the application.",
+      "validate": {
+        "required": true
+      },
+      "readonly": true
+    },
+    {
+      "label": "Applicant Name",
+      "id": "Field_ApplicantName",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_3",
+        "col": 8
+      },
+      "key": "applicantName",
+      "validate": {
+        "required": true
+      },
+      "readonly": true
+    },
+    {
+      "label": "Email Address",
+      "id": "Field_Email",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_4",
+        "col": 8
+      },
+      "key": "email",
+      "validate": {
+        "required": true
+      },
+      "readonly": true
+    },
+    {
+      "label": "Offered Limit",
+      "id": "Field_OfferedLimit",
+      "type": "number",
+      "layout": {
+        "row": "Row_4",
+        "col": 8
+      },
+      "key": "offeredLimit",
+      "appearance": {
+        "prefixAdorner": "$"
+      },
+      "validate": {
+        "required": true
+      },
+      "readonly": true
+    },
+    {
+      "text": "##### Document Information",
+      "id": "Form_Subheading_2",
+      "type": "text",
+      "layout": {
+        "row": "Row_5",
+        "col": 16
+      }
+    },
+    {
+      "label": "Document ID",
+      "id": "Field_DocumentId",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_6",
+        "col": 8
+      },
+      "key": "documentId",
+      "readonly": true
+    },
+    {
+      "label": "Storage Location",
+      "id": "Field_StorageLocation",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_6",
+        "col": 8
+      },
+      "key": "storageLocation",
+      "readonly": true
+    },
+    {
+      "text": "##### Decision",
+      "id": "Form_Subheading_3",
+      "type": "text",
+      "layout": {
+        "row": "Row_7",
+        "col": 16
+      }
+    },
+    {
+      "label": "Signing Decision",
+      "values": [
+        {
+          "label": "Approve",
+          "value": "APPROVED"
+        },
+        {
+          "label": "Reject",
+          "value": "REJECTED"
+        }
+      ],
+      "id": "Field_SigningDecision",
+      "type": "select",
+      "layout": {
+        "row": "Row_8",
+        "col": 16
+      },
+      "key": "signingDecision",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Notes",
+      "id": "Field_SigningNotes",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_9",
+        "col": 16
+      },
+      "key": "signingNotes",
+      "description": "Add any relevant notes regarding the decision."
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.9.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.48.0"
+  },
+  "schemaVersion": 19,
+  "id": "signing-ceremony-form",
+  "generated": true,
+  "type": "default"
+}
