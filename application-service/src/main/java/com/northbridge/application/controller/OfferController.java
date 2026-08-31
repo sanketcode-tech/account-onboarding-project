@@ -18,28 +18,31 @@ import java.util.Map;
 public class OfferController {
 
     private final OfferService offerService;
+    private final com.northbridge.application.auth.AuthClient authClient;
 
     @GetMapping("/{applicationId}")
-    public ResponseEntity<Offer> getOffer(@PathVariable String applicationId, org.springframework.security.core.Authentication authentication) {
+    public ResponseEntity<Offer> getOffer(@PathVariable String applicationId, @RequestHeader(value = "Authorization", required = false) String authorization) {
         var opt = offerService.findByApplicationId(applicationId);
         if (opt.isEmpty()) return ResponseEntity.notFound().build();
         Offer offer = opt.get();
-        // Verify ownership
-        if (authentication == null || authentication.getName() == null || !authentication.getName().equals(offer.getCustomerId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        // Verify ownership using auth-client
+        try {
+            String subject = authClient.validateAndGetSubject(authorization);
+            if (!subject.equals(offer.getCustomerId())) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            return ResponseEntity.ok(offer);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return ResponseEntity.ok(offer);
     }
 
     @PostMapping("/{applicationId}/accept")
-    public ResponseEntity<?> acceptOffer(@PathVariable String applicationId, org.springframework.security.core.Authentication authentication) {
+    public ResponseEntity<?> acceptOffer(@PathVariable String applicationId, @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
             var opt = offerService.findByApplicationId(applicationId);
             if (opt.isEmpty()) return ResponseEntity.notFound().build();
             Offer offer = opt.get();
-            if (authentication == null || authentication.getName() == null || !authentication.getName().equals(offer.getCustomerId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
+            String subject = authClient.validateAndGetSubject(authorization);
+            if (!subject.equals(offer.getCustomerId())) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 
             Offer accepted = offerService.acceptOffer(applicationId);
             return ResponseEntity.ok(accepted);
@@ -50,6 +53,8 @@ public class OfferController {
             log.warn("Rejecting offer acceptance for applicationId={} because offer is not pending", applicationId, ex);
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", ex.getMessage()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 }
