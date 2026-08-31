@@ -45,7 +45,10 @@ public class DocumentService {
             Files.createDirectories(uploadDir);
             String filename = applicationId + "_" + UUID.randomUUID() + "_" + file.getOriginalFilename();
             Path dest = uploadDir.resolve(filename);
-            file.transferTo(dest.toFile());
+            // Use stream copy to avoid transferTo platform/temp-file issues
+            try (var in = file.getInputStream()) {
+                Files.copy(in, dest);
+            }
             doc.setStorageLocation(dest.toAbsolutePath().toString());
             doc.setStatus(DocumentStatus.UPLOADED);
             Document saved = documentRepository.save(doc);
