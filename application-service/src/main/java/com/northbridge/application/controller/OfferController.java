@@ -20,17 +20,29 @@ public class OfferController {
     private final OfferService offerService;
 
     @GetMapping("/{applicationId}")
-    public ResponseEntity<Offer> getOffer(@PathVariable String applicationId) {
-        return offerService.findByApplicationId(applicationId)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<Offer> getOffer(@PathVariable String applicationId, org.springframework.security.core.Authentication authentication) {
+        var opt = offerService.findByApplicationId(applicationId);
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+        Offer offer = opt.get();
+        // Verify ownership
+        if (authentication == null || authentication.getName() == null || !authentication.getName().equals(offer.getCustomerId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(offer);
     }
 
     @PostMapping("/{applicationId}/accept")
-    public ResponseEntity<?> acceptOffer(@PathVariable String applicationId) {
+    public ResponseEntity<?> acceptOffer(@PathVariable String applicationId, org.springframework.security.core.Authentication authentication) {
         try {
-            Offer offer = offerService.acceptOffer(applicationId);
-            return ResponseEntity.ok(offer);
+            var opt = offerService.findByApplicationId(applicationId);
+            if (opt.isEmpty()) return ResponseEntity.notFound().build();
+            Offer offer = opt.get();
+            if (authentication == null || authentication.getName() == null || !authentication.getName().equals(offer.getCustomerId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+
+            Offer accepted = offerService.acceptOffer(applicationId);
+            return ResponseEntity.ok(accepted);
         } catch (EntityNotFoundException ex) {
             log.warn("Offer accept requested for unknown applicationId={}", applicationId);
             return ResponseEntity.notFound().build();

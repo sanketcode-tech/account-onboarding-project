@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 /**
  * Authentication API controller
@@ -57,6 +58,19 @@ public class AuthController {
         log.info("Getting profile for user ID: {}", userId);
         UserProfileResponse response = authService.getUserProfile(userId);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Validate JWT token and return subject (email) if valid
+     */
+    @GetMapping("/validate")
+    public ResponseEntity<?> validateToken(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        String token = null;
+        if (authorization != null && authorization.startsWith("Bearer ")) token = authorization.substring(7);
+        if (token == null || token.isBlank()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
+        if (!authService.isTokenValid(token)) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token");
+        String subject = authService.getSubjectFromToken(token);
+        return ResponseEntity.ok().body(Map.of("subject", subject));
     }
 }
 

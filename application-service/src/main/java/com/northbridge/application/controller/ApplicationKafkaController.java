@@ -52,15 +52,21 @@ public class ApplicationKafkaController {
      * @return ResponseEntity with success message
      */
     @PostMapping("/submit")
-    public ResponseEntity<String> submitApplication(@RequestBody ApplicationEvent event) {
+    public ResponseEntity<String> submitApplication(@RequestBody ApplicationEvent event, org.springframework.security.core.Authentication authentication) {
         try {
             if (event.getApplicationId() == null || event.getApplicationId().isEmpty()) {
                 return ResponseEntity.badRequest()
                         .body("Application ID is required");
             }
 
+            // Derive customerId from JWT subject
+            if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid JWT token");
+            }
+            event.setCustomerId(authentication.getName());
+
             kafkaProducerService.sendApplicationEvent(event);
-            log.info("Application submitted successfully: {}", event.getApplicationId());
+            log.info("Application submitted successfully: {} for customerId={}", event.getApplicationId(), event.getCustomerId());
             return ResponseEntity.status(HttpStatus.ACCEPTED)
                     .body("Application submitted successfully. Application ID: " + event.getApplicationId());
         } catch (Exception e) {
