@@ -52,6 +52,9 @@ public class DocumentService {
             doc.setStorageLocation(dest.toAbsolutePath().toString());
             doc.setStatus(DocumentStatus.UPLOADED);
             Document saved = documentRepository.save(doc);
+            // Log upload event to console with status
+            log.info("Document uploaded for applicationId={} documentId={} status={} storageLocation={}",
+                    saved.getApplicationId(), saved.getDocumentId(), saved.getStatus(), saved.getStorageLocation());
             return saved;
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save file", e);
