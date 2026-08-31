@@ -3,6 +3,7 @@ package com.northbridge.document;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
@@ -20,17 +21,15 @@ public class DocumentController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found"));
     }
 
-    @PostMapping("/{applicationId}/sign")
-    public ResponseEntity<Document> signDocument(@PathVariable String applicationId, @RequestBody(required = false) SignRequest body) {
-        String storageLocation = body == null ? null : body.getStorageLocation();
-        Document saved = documentService.signDocument(applicationId, storageLocation);
+    @PostMapping("/{applicationId}/upload")
+    public ResponseEntity<Document> uploadDocument(@PathVariable String applicationId, @RequestParam("file") MultipartFile file) {
+        Document saved = documentService.uploadDocument(applicationId, file);
         return ResponseEntity.ok(saved);
     }
 
-    public static class SignRequest {
-        private String storageLocation;
-
-        public String getStorageLocation() { return storageLocation; }
-        public void setStorageLocation(String storageLocation) { this.storageLocation = storageLocation; }
+    @PostMapping("/{applicationId}/sign")
+    public ResponseEntity<Document> signDocument(@PathVariable String applicationId) {
+        Document saved = documentService.signDocument(applicationId);
+        return ResponseEntity.ok(saved);
     }
 }
