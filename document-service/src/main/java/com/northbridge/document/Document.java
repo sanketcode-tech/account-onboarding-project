@@ -36,4 +36,7 @@ public class Document {
 
     @Column(name = "signed_at")
     private Instant signedAt;
+
+    @Column(name = "signed_by")
+    private String signedBy;
 }

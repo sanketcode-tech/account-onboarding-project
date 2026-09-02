@@ -33,4 +33,16 @@ public class AuthClient {
         }
         throw new IllegalArgumentException("Invalid token or unable to validate");
     }
+
+    public String getUserFullName(String bearerToken) {
+        if (bearerToken == null || bearerToken.isBlank()) throw new IllegalArgumentException("Missing Authorization header");
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, bearerToken);
+        HttpEntity<Void> req = new HttpEntity<>(headers);
+        ResponseEntity<Map> resp = restTemplate.exchange(authServiceUrl + "/api/auth/me", HttpMethod.GET, req, Map.class);
+        if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null && resp.getBody().get("fullName") != null) {
+            return String.valueOf(resp.getBody().get("fullName"));
+        }
+        throw new IllegalArgumentException("Unable to fetch user profile");
+    }
 }
