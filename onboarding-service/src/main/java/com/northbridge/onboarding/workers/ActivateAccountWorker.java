@@ -15,6 +15,9 @@ import java.util.Map;
 import com.northbridge.onboarding.account.Account;
 import com.northbridge.onboarding.account.AccountRepository;
 
+/**
+ * Camunda worker that provisions and persists account records during activation.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor

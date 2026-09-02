@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * Camunda worker that publishes AccountActivatedEvent after account provisioning completes.
+ */
 @Slf4j
 @Component
 public class PublishActivatedWorker {

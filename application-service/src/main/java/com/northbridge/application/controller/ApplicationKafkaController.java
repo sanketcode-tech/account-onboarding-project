@@ -31,7 +31,7 @@ public class ApplicationKafkaController {
     @PostMapping("/test-send")
     public ResponseEntity<String> sendTestMessage(
             @RequestParam(value = "applicationId", defaultValue = "app-123") String applicationId,
-            @RequestParam(value = "applicantName", defaultValue = "Sanket Dhake") String applicantName) {
+            @RequestParam(value = "applicantName", defaultValue = "John Doe") String applicantName) {
 
         try {
             kafkaProducerService.sendTestMessage(applicationId, applicantName);

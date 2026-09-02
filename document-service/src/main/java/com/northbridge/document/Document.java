@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+/**
+ * JPA entity representing a document requested and uploaded during onboarding.
+ */
 @Entity
 @Table(name = "documents", uniqueConstraints = {@UniqueConstraint(name = "uk_document_application_id", columnNames = "application_id")})
 @Data

@@ -1,54 +1,91 @@
-# Phase 6 — document-service & notification-service
+# Phase 6 — Document + notification flow
 
-Checklist
-- [ ] Implement `document-service` endpoints for file upload and metadata storage
-  - `POST /api/documents/upload` (multipart/form-data)
-  - Persist `DocumentMetadata` in H2
-  - Store files locally under `./uploads/` (or store URI if cloud)
-  - Publish `DocumentSignedEvent` to Kafka
-- [ ] Implement `notification-service` with 5 Kafka listeners (one per topic)
-  - `application.submitted` → onApplicationSubmitted
-  - `offer.ready` → onOfferReady
-  - `offer.accepted` → onOfferAccepted
-  - `document.signed` → onDocumentSigned
-  - `account.activated` → onAccountActivated
-- [ ] Persist notifications to H2 table `notifications` and log simulated email/SMS sends
-- [ ] Add HTTP test files for upload and notification verification
+## Overview
 
-Goal
-Support customer signed-document uploads and persist metadata; provide a notification-service that consumes lifecycle events and generates notifications (simulated email/SMS) and stores them for audit.
+The document flow is implemented in `document-service`, which persists document metadata, validates ownership, and publishes `document.signed` after a file has been uploaded. The notification-service exists as a scaffold and does not yet implement actual delivery logic.
 
-Deliverables
-- `document-service`:
-  - Multipart upload controller (`UploadController`)
-  - `DocumentMetadata` JPA entity
-  - Kafka publisher for `DocumentSignedEvent`
-- `notification-service`:
-  - 5 `@KafkaListener` methods, one per topic
-  - `Notification` JPA entity and repository
-  - Logging of simulated notification delivery
+## Document-service summary
 
-Implementation notes
-- Keep file uploads size-limited and validate file type (PDF) and applicationId presence
-- For local dev, store files under `document-service/uploads/` and include `storageLocation` in event
-- Notification messages should include `applicationId` and human-friendly text
+- Module: `document-service`
+- Default port: `8084`
+- Main class: `DocumentServiceApplication`
+- Database: H2 in-memory database for local dev
+- Main responsibilities:
+  - create document records from `document.requested`
+  - manage signature confirmation
+  - ensure file upload happens after signing confirmation
+  - publish the `document.signed` event
 
-Local run
-```powershell
-# Start Kafka
-# Start document-service
-.\mvnw.cmd -pl document-service spring-boot:run
+## Key classes
 
-# Start notification-service
-.\mvnw.cmd -pl notification-service spring-boot:run
-```
+- `DocumentRequestedListener`
+  - Consumes `document.requested`
+  - Creates a `Document` entity if it does not already exist
+- `DocumentService`
+  - Handles signing and upload logic
+  - Publishes `document.signed` when upload succeeds
+- `DocumentController`
+  - Exposes document retrieval, file download, upload, and sign endpoints
+- `Document`
+  - JPA entity storing document metadata and status
+- `DocumentRepository`
+  - Repository used for lookup by `applicationId`
+- `OfferClient`
+  - Calls application-service to get customer information for authorization checks
+- `AuthClient`
+  - Validates token and user identity for document actions
+- `KafkaConfig`
+  - Kafka producer/consumer setup for the document-service
 
-Verification
-1. Upload a signed PDF for an existing `applicationId`.
-2. Confirm `document.signed` published to Kafka.
-3. Confirm `notification-service` consumed event, logged simulated send, and stored notification in H2.
-4. Check `notification` table via H2 console or querying endpoint (if provided).
+## Kafka topics
 
-Notes
-- Notifications are simulated via logs; later you can plug in an email/SMS provider.
+| Topic | Produced by | Consumed by |
+| --- | --- | --- |
+| `document.requested` | `onboarding-service` | `document-service` |
+| `document.signed` | `document-service` | `onboarding-service` |
 
+## Document lifecycle
+
+### 1. Document request
+
+`PublishDocumentWorker` in onboarding-service emits `document.requested`.
+
+### 2. Document record creation
+
+`DocumentRequestedListener` consumes the event and saves a record.
+
+### 3. Sign confirmation
+
+`DocumentController.signDocument()` calls `DocumentService.signDocument()`.
+
+- It marks the document as signed in metadata
+- It stores signer name if present
+- It does not publish a Kafka event here because the actual file upload is what triggers final signature publication
+
+### 4. Upload file
+
+`DocumentController.uploadDocument()` delegates to `DocumentService.uploadDocument()`.
+
+- Checks that the document has been signed
+- Writes to `uploads/`
+- Stores the file path in `storageLocation`
+- Saves status as `UPLOADED`
+- Publishes `document.signed` to Kafka
+
+### 5. File retrieval
+
+`DocumentController.getFile()` allows the customer or officer to fetch the uploaded document.
+
+## Notification-service status
+
+The `notification-service` exists as a Spring Boot app, but there is no working notification logic in the codebase at the moment.
+
+- `NotificationServiceApplication` is present
+- No real email/SMS/consumer implementation is currently wired up
+- There are no notification topic consumers found in the code
+
+This means the project currently supports the document and onboarding flow, but not actual user notifications.
+
+## Current status
+
+The document flow is implemented and is a key bridge between the onboarding process and the actual signed-file review step. Notification handling remains a known gap rather than a completed feature.

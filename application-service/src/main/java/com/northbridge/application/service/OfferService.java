@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Optional;
 
+/**
+ * Service handling offer persistence and acceptance; publishes offer.accepted when a customer accepts an offer.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

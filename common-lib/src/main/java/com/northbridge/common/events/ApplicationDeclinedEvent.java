@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+/**
+ * Event published when an application is declined (topic: application.declined).
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

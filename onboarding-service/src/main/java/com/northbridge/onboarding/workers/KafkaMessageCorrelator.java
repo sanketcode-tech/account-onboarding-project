@@ -10,6 +10,9 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
+/**
+ * Correlates Kafka events (offer.accepted, document.signed) to Camunda messages and publishes them to the process engine.
+ */
 @Slf4j
 @Component
 public class KafkaMessageCorrelator {

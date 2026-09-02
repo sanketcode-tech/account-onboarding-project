@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Map;
 
+/**
+ * Camunda worker that publishes OfferReadyEvent to Kafka when an offer is produced.
+ */
 @Slf4j
 @Component
 public class PublishOfferWorker {

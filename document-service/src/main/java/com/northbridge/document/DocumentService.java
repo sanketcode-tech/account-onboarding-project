@@ -20,6 +20,9 @@ import java.time.Instant;
 import java.util.Optional;
 
 
+/**
+ * Service that manages document metadata, signing confirmation and file uploads; publishes document.signed when a file is saved.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

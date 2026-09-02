@@ -1,43 +1,77 @@
-# Phase 3 — application-service: Deploy & Test
+# Phase 3 — Application service
 
-Checklist
-- [ ] Implement REST API to accept current account application JSON
-- [ ] Persist flexible application JSON to MongoDB Atlas (document store)
-- [ ] Persist relational metadata (applicationId, status, processInstanceKey) to H2 via JPA
-- [ ] Validate mandatory fields and return meaningful errors
-- [ ] Publish `ApplicationSubmittedEvent` to Kafka (`application.submitted` topic)
-- [ ] Provide `GET /api/applications/{id}` to fetch status and metadata
-- [ ] Add HTTP test file: `docs/http/application-service.http`
-- [ ] Run and verify locally on port 8082
+## Overview
 
-Goal
-Create the application-service that receives the customer's Current Account application form, stores the full JSON in MongoDB Atlas, stores relational metadata in H2, and emits a Kafka `application.submitted` event for downstream processing.
+The `application-service` stores application data, exposes offer endpoints, and emits system events into Kafka. It is the service that starts the onboarding journey by publishing the initial `application.submitted` event after an application is created.
 
-Deliverables
-- Endpoints:
-  - `POST /api/applications` — create application (returns `applicationId`)
-  - `GET  /api/applications/{applicationId}` — fetch application metadata and status
-- MongoDB document model: `ApplicationDocument` matching spec
-- JPA entity: `ApplicationMetadata` stored in H2 for quick queries
-- Kafka producer wired to local Kafka bootstrap `localhost:9092` (use Spring Kafka `KafkaTemplate`)
+## Service summary
 
-Implementation notes
-- Use `spring-boot-starter-data-mongodb` for Mongo persistence and read `MONGODB_ATLAS_URI` from `.env` when ready.
-- Keep payload validation server-side (reject missing fullName, dob, PAN, etc.).
-- Use `common-lib` `ApplicationSubmittedEvent` DTO to publish event (JSON serializer).
+- Module: `application-service`
+- Default port: `8082`
+- Main class: `ApplicationServiceApplication`
+- Persistence: H2 in-memory database + MongoDB configuration declared in `application.yml`
 
-Local run
-```powershell
-# From repo root
-.\mvnw.cmd -pl application-service spring-boot:run
-```
+## Key classes
 
-Verification
-1. Ensure Kafka is running and topic `application.submitted` exists.
-2. Call `POST /api/applications` with sample JSON; expect 201 and `applicationId` in response.
-3. Verify the document exists in Mongo Atlas (or check placeholder if not configured).
-4. Confirm a message in Kafka topic `application.submitted` using console consumer.
+- `ApplicationServiceApplication`
+  - Bootstraps the application.
+- `KafkaProducerService`
+  - Converts an internal `ApplicationEvent` into a shared `ApplicationSubmittedEvent` and sends it to Kafka.
+- `OfferController`
+  - REST controller exposing offer view and accept endpoints for the customer-facing UI.
+- `OfferService`
+  - Loads offers and accepts them, then publishes `offer.accepted`.
+- `OfferReadyListener`
+  - Consumes `offer.ready` and persists Offer records.
+- `OfferRepository`
+  - Repository for offer records.
+- `Offer`
+  - JPA entity representing an offer for an application.
+- `ApplicationEvent`
+  - Internal application payload model used before Kafka publication.
+- `AuthClient`
+  - Calls the auth-service to validate tokens and request subject data.
 
-Notes
-- For local dev without Mongo Atlas, you can stub the Mongo connection or set a temporary local URI, but plan to use Atlas for Phase 3.
+## Kafka topics
 
+| Topic | Direction | Producer/Consumer |
+| --- | --- | --- |
+| `application.submitted` | Outbound | `KafkaProducerService` |
+| `offer.ready` | Inbound | `OfferReadyListener` |
+| `offer.accepted` | Outbound | `OfferService.acceptOffer()` |
+
+## API surface
+
+### Application submission flow
+
+The project currently emits application events in code-level flows such as test or manual submission endpoints.
+
+- `KafkaProducerService.sendApplicationEvent(ApplicationEvent event)`
+  - Normalizes the event into a `ApplicationSubmittedEvent`
+  - Produces Kafka message on topic `application.submitted`
+  - Sets payload metadata and customer ID fallback when needed
+
+### Offer endpoints
+
+`GET /api/offers/{applicationId}`
+- Returns an offer after ownership validation against the current auth token
+
+`POST /api/offers/{applicationId}/accept`
+- Validates subject ownership
+- Calls `OfferService.acceptOffer(applicationId)`
+- Publishes `offer.accepted` to Kafka
+
+## Offer lifecycle
+
+1. `onboarding-service` publishes `offer.ready`
+2. `OfferReadyListener` consumes the event
+3. The app persists an `Offer` record
+4. Customer fetches the offer via `OfferController`
+5. Customer accepts it and `OfferService` sends `offer.accepted`
+6. `onboarding-service` correlates the accepted message back into the BPMN flow
+
+## Notes
+
+- Current code makes the application-service behave as the producer of the initial submission event and the coordinator of offer acceptance.
+- The project is not currently exposing a large application CRUD surface; instead it focuses on event production and offer processing.
+- MongoDB is declared in `application.yml`, but the main working flow around Kafka and offer persistence is still centered on the application/service event flow in code.

@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * Camunda worker that publishes ApplicationDeclinedEvent when an application is declined.
+ */
 @Slf4j
 @Component
 public class PublishDeclinedWorker {
