@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class ApplicationKafkaController {
 
     private final KafkaProducerService kafkaProducerService;
+    private final com.northbridge.application.auth.AuthClient authClient;
 
     /**
      * Test endpoint - Send a simple application event to Kafka
@@ -52,15 +53,23 @@ public class ApplicationKafkaController {
      * @return ResponseEntity with success message
      */
     @PostMapping("/submit")
-    public ResponseEntity<String> submitApplication(@RequestBody ApplicationEvent event) {
+    public ResponseEntity<String> submitApplication(@RequestBody ApplicationEvent event, @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
             if (event.getApplicationId() == null || event.getApplicationId().isEmpty()) {
                 return ResponseEntity.badRequest()
                         .body("Application ID is required");
             }
 
+            // Derive customerId from JWT subject via auth-service
+            try {
+                String subject = authClient.validateAndGetSubject(authorization);
+                event.setCustomerId(subject);
+            } catch (IllegalArgumentException ex) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid JWT token");
+            }
+
             kafkaProducerService.sendApplicationEvent(event);
-            log.info("Application submitted successfully: {}", event.getApplicationId());
+            log.info("Application submitted successfully: {} for customerId={}", event.getApplicationId(), event.getCustomerId());
             return ResponseEntity.status(HttpStatus.ACCEPTED)
                     .body("Application submitted successfully. Application ID: " + event.getApplicationId());
         } catch (Exception e) {

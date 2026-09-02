@@ -47,6 +47,9 @@ public class KafkaMessageCorrelator {
             vars.put("applicationId", event.getApplicationId());
             if (event.getCustomerId() != null) vars.put("customerId", event.getCustomerId());
             vars.put("acceptedAt", event.getAcceptedAt().toString());
+            if (event.getOfferedLimit() != null) {
+                vars.put("offeredLimit", event.getOfferedLimit());
+            }
 
             camundaClient.newPublishMessageCommand()
                     .messageName("OfferAccepted")

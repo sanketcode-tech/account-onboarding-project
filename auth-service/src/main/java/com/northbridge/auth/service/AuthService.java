@@ -91,6 +91,17 @@ public class AuthService {
     }
 
     /**
+     * Validate token (used by other services)
+     */
+    public boolean isTokenValid(String token) {
+        return jwtUtil.isTokenValid(token);
+    }
+
+    public String getSubjectFromToken(String token) {
+        return jwtUtil.getEmailFromToken(token);
+    }
+
+    /**
      * Map UserEntity to UserProfileResponse
      */
     private UserProfileResponse mapToProfileResponse(UserEntity user) {

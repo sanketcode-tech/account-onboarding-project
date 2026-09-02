@@ -1,1 +1,140 @@
-{"executionPlatform":"Camunda Cloud","executionPlatformVersion":"8.9.0","exporter":{"name":"Camunda Web Modeler","version":"b349182"},"schemaVersion":19,"id":"provisioning-approval-form","components":[{"text":"### Application Decision and Provisioning","type":"text","id":"Heading_1","layout":{"row":"Row_1","col":16}},{"text":"##### Applicant Information","type":"text","id":"Subheading_1","layout":{"row":"Row_2","col":16}},{"label":"Application ID","type":"textfield","id":"Textfield_applicationId","key":"applicationId","validate":{"required":true},"layout":{"row":"Row_3","col":8},"readonly":true},{"label":"Applicant Name","type":"textfield","id":"Textfield_applicantName","key":"applicantName","validate":{"required":true},"layout":{"row":"Row_3","col":8},"readonly":true},{"text":"##### Offer & Signing","type":"text","id":"Subheading_2","layout":{"row":"Row_4","col":16}},{"label":"Offered Limit","type":"number","id":"Number_offeredLimit","key":"offeredLimit","appearance":{"prefixAdorner":"$"},"validate":{"required":true},"layout":{"row":"Row_5","col":8},"readonly":true},{"label":"Signing Decision","type":"textfield","layout":{"row":"Row_5","columns":null},"id":"Field_06ar4yl","key":"signingDecision","readonly":true},{"text":"##### Service Provisioning","type":"text","id":"Subheading_3","layout":{"row":"Row_6","col":16}},{"label":"Provisioning Decision","values":[{"label":"Approve","value":"APPROVED"},{"label":"Reject","value":"REJECTED"}],"type":"select","id":"Select_provisioningDecision","key":"provisioningDecision","validate":{"required":true},"layout":{"row":"Row_7","col":16}},{"label":"Provisioning Notes","type":"textarea","id":"Textarea_provisioningNotes","key":"provisioningNotes","description":"Add any relevant notes for the provisioning outcome.","layout":{"row":"Row_8","col":16}}],"generated":true,"type":"default"}
+{
+  "components": [
+    {
+      "text": "### Application Decision and Provisioning",
+      "type": "text",
+      "id": "Heading_1",
+      "layout": {
+        "row": "Row_1",
+        "col": 16
+      }
+    },
+    {
+      "text": "##### Applicant Information",
+      "type": "text",
+      "id": "Subheading_1",
+      "layout": {
+        "row": "Row_2",
+        "col": 16
+      }
+    },
+    {
+      "label": "Application ID",
+      "type": "textfield",
+      "id": "Textfield_applicationId",
+      "key": "applicationId",
+      "validate": {
+        "required": true
+      },
+      "layout": {
+        "row": "Row_3",
+        "col": 8
+      },
+      "readonly": true
+    },
+    {
+      "label": "Applicant Name",
+      "type": "textfield",
+      "id": "Textfield_applicantName",
+      "key": "applicantName",
+      "validate": {
+        "required": true
+      },
+      "layout": {
+        "row": "Row_3",
+        "col": 8
+      },
+      "readonly": true
+    },
+    {
+      "text": "##### Offer & Signing",
+      "type": "text",
+      "id": "Subheading_2",
+      "layout": {
+        "row": "Row_4",
+        "col": 16
+      }
+    },
+    {
+      "label": "Offered Limit",
+      "type": "number",
+      "id": "Number_offeredLimit",
+      "key": "offeredLimit",
+      "appearance": {
+        "prefixAdorner": "$"
+      },
+      "validate": {
+        "required": true
+      },
+      "layout": {
+        "row": "Row_5",
+        "col": 8
+      },
+      "readonly": true
+    },
+    {
+      "label": "Signing Decision",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_5",
+        "columns": null
+      },
+      "id": "Field_06ar4yl",
+      "key": "signingDecision",
+      "readonly": true
+    },
+    {
+      "text": "##### Service Provisioning",
+      "type": "text",
+      "id": "Subheading_3",
+      "layout": {
+        "row": "Row_6",
+        "col": 16
+      }
+    },
+    {
+      "label": "Provisioning Decision",
+      "values": [
+        {
+          "label": "Approve",
+          "value": "APPROVED"
+        },
+        {
+          "label": "Reject",
+          "value": "REJECTED"
+        }
+      ],
+      "type": "select",
+      "id": "Select_provisioningDecision",
+      "key": "provisioningDecision",
+      "validate": {
+        "required": true
+      },
+      "layout": {
+        "row": "Row_7",
+        "col": 16
+      }
+    },
+    {
+      "label": "Provisioning Notes",
+      "type": "textarea",
+      "id": "Textarea_provisioningNotes",
+      "key": "provisioningNotes",
+      "description": "Add any relevant notes for the provisioning outcome.",
+      "layout": {
+        "row": "Row_8",
+        "col": 16
+      }
+    }
+  ],
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.9.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.48.0"
+  },
+  "schemaVersion": 19,
+  "id": "provisioning-approval-form",
+  "generated": true,
+  "type": "default"
+}
