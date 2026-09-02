@@ -58,3 +58,7 @@ logging:
     io.camunda.zeebe: INFO
     org.springframework.kafka: INFO
 
+# CORS allowed origins for frontend (comma separated)
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:63342}
+

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Northbridge Bank — Register</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="navbar-brand">Northbridge Bank</div>
+    <div class="navbar-menu">
+        <a href="index.html">Home</a>
+        <a href="login.html">Login</a>
+    </div>
+</div>
+
+<div class="container" style="max-width:540px; margin-top:2.5rem;">
+    <h1>Create an account</h1>
+
+    <div id="error-banner" class="alert alert-error hidden" role="alert"></div>
+    <div id="success-banner" class="alert alert-success hidden" role="status"></div>
+
+    <form id="register-form">
+        <div class="form-group">
+            <label for="firstName">First name</label>
+            <input id="firstName" name="firstName" type="text" required />
+        </div>
+        <div class="form-group">
+            <label for="lastName">Last name</label>
+            <input id="lastName" name="lastName" type="text" required />
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required />
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required minlength="6" />
+        </div>
+
+        <div class="flex" style="justify-content:space-between; align-items:center;">
+            <button id="submit-btn" class="btn" type="submit">Register</button>
+            <div id="spinner" class="spinner hidden" aria-hidden="true"></div>
+        </div>
+    </form>
+
+    <p style="margin-top:1rem; font-size:0.95rem; color:#666;">Already have an account? <a href="login.html">Login</a></p>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    (function(){
+        const form = document.getElementById('register-form');
+        const errorBanner = document.getElementById('error-banner');
+        const successBanner = document.getElementById('success-banner');
+        const spinner = document.getElementById('spinner');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function showError(msg){ errorBanner.textContent = msg; errorBanner.classList.remove('hidden'); }
+        function clearError(){ errorBanner.textContent = ''; errorBanner.classList.add('hidden'); }
+        function showSuccess(msg){ successBanner.textContent = msg; successBanner.classList.remove('hidden'); }
+        function clearSuccess(){ successBanner.textContent = ''; successBanner.classList.add('hidden'); }
+        function setLoading(loading){ if(loading){ spinner.classList.remove('hidden'); submitBtn.disabled = true; } else { spinner.classList.add('hidden'); submitBtn.disabled = false; } }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); clearError(); clearSuccess(); setLoading(true);
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await window.apiClient.post(window.apiClient.defaults.auth + '/register', { firstName, lastName, email, password });
+                if (res.status === 201 || res.ok) {
+                    showSuccess('Registration successful. Signing you in...');
+                    // automatically login to obtain JWT
+                    const loginRes = await window.apiClient.post(window.apiClient.defaults.auth + '/login', { email, password });
+                    if (loginRes.ok) {
+                        const data = await loginRes.json();
+                        const token = data.token;
+                        if (!token) throw new Error('No token returned after registration');
+                        window.auth.setToken(token);
+                        window.location.href = 'apply.html';
+                    } else {
+                        let msg = 'Registration succeeded but automatic login failed. Please login manually.';
+                        try { const body = await loginRes.json(); msg = body.message || msg; } catch(e){}
+                        showError(msg);
+                    }
+                } else {
+                    let msg = 'Registration failed';
+                    try { const body = await res.json(); msg = body.message || JSON.stringify(body); } catch(e){}
+                    showError(msg);
+                }
+            } catch (err) {
+                console.error(err);
+                showError(err.message || 'Unexpected error');
+            } finally { setLoading(false); }
+        });
+    })();
+</script>
+</body>
+</html>
