@@ -19,7 +19,7 @@ public class AuthClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${auth.service.url:http://localhost:8080}")
+    @Value("${auth.service.url:http://localhost:8081}")
     private String authServiceUrl;
 
     public String validateAndGetSubject(String bearerToken) {

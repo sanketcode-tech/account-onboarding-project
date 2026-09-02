@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Kafka Producer Service
@@ -48,7 +49,19 @@ public class KafkaProducerService {
         // include applicant details so consumers can validate immediately
         common.setApplicantName(event.getApplicantName());
         common.setEmail(event.getEmail());
-        common.setPayloadRef(null);
+        // If payload is provided, serialize it into payloadRef so downstream consumers can access it without Mongo.
+        if (event.getPayload() != null) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                String payloadJson = mapper.writeValueAsString(event.getPayload());
+                common.setPayloadRef(payloadJson);
+            } catch (Exception ex) {
+                log.warn("Failed to serialize payload for applicationId={}: {}", event.getApplicationId(), ex.getMessage());
+                common.setPayloadRef(null);
+            }
+        } else {
+            common.setPayloadRef(null);
+        }
 
         Message<ApplicationSubmittedEvent> message = MessageBuilder
                 .withPayload(common)

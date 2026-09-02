@@ -21,7 +21,7 @@ public class DocumentController {
         // validate token and ownership
         try {
             String subject = authClient.validateAndGetSubject(authorization);
-            String owner = offerClient.getCustomerIdForApplication(applicationId);
+            String owner = offerClient.getCustomerIdForApplication(applicationId, authorization);
             if (owner == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner not found");
             if (!subject.equals(owner)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this applicationId");
         } catch (IllegalArgumentException ex) {
@@ -37,7 +37,7 @@ public class DocumentController {
     public ResponseEntity<Document> uploadDocument(@PathVariable String applicationId, @RequestParam("file") MultipartFile file, @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
             String subject = authClient.validateAndGetSubject(authorization);
-            String owner = offerClient.getCustomerIdForApplication(applicationId);
+            String owner = offerClient.getCustomerIdForApplication(applicationId, authorization);
             if (owner == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner not found");
             if (!subject.equals(owner)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this applicationId");
         } catch (IllegalArgumentException ex) {
@@ -52,7 +52,7 @@ public class DocumentController {
     public ResponseEntity<Document> signDocument(@PathVariable String applicationId, @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
             String subject = authClient.validateAndGetSubject(authorization);
-            String owner = offerClient.getCustomerIdForApplication(applicationId);
+            String owner = offerClient.getCustomerIdForApplication(applicationId, authorization);
             if (owner == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner not found");
             if (!subject.equals(owner)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this applicationId");
         } catch (IllegalArgumentException ex) {

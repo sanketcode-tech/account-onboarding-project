@@ -39,7 +39,8 @@ public class OfferService {
         offer.setAcceptedAt(Instant.now());
         Offer saved = offerRepository.save(offer);
 
-        OfferAcceptedEvent event = new OfferAcceptedEvent(applicationId, saved.getCustomerId(), saved.getAcceptedAt());
+        // include offeredLimit so downstream correlator and Camunda have it available for forms
+        OfferAcceptedEvent event = new OfferAcceptedEvent(applicationId, saved.getCustomerId(), saved.getAcceptedAt(), saved.getOfferedLimit());
         kafkaTemplate.send("offer.accepted", applicationId, event);
         log.info("Accepted offer for applicationId={} and published offer.accepted event with customerId={}", applicationId, saved.getCustomerId());
 
