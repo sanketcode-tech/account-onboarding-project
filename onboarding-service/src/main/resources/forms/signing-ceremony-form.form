@@ -70,6 +70,8 @@
         "col": 8
       },
       "key": "offeredLimit",
+      "value": 1000,
+      "defaultValue": 1000,
       "appearance": {
         "prefixAdorner": "$"
       },
@@ -78,6 +80,7 @@
       },
       "readonly": true
     },
+
     {
       "text": "##### Document Information",
       "id": "Form_Subheading_2",
@@ -108,6 +111,15 @@
       },
       "key": "storageLocation",
       "readonly": true
+    },
+    {
+      "text": "[Open signed document](http://localhost:8084/api/documents/{{applicationId}}/file)",
+      "id": "Field_DocumentFileLink",
+      "type": "text",
+      "layout": {
+        "row": "Row_6",
+        "col": 8
+      }
     },
     {
       "text": "##### Decision",

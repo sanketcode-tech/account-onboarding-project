@@ -59,3 +59,6 @@
   dependencies for Jackson 2 coordinates (`com.fasterxml.jackson.core`) — this project
   has already been burned once by a duplicate-version conflict between Jackson 2 and 3;
   don't reintroduce it.
+
+## Git
+- Do not commit directly from copilot, I will commit manually after I tested
