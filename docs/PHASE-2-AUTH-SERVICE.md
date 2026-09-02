@@ -1,44 +1,80 @@
-# Phase 2 — auth-service: Deploy & Test
+# Phase 2 — Auth service
 
-Checklist
-- [ ] Implement authentication API (register/login/me)
-- [ ] Add JPA `UserEntity` and `UserRepository` using H2
-- [ ] Implement password hashing (BCrypt) and validation
-- [ ] Implement JWT generation and validation (HS256 using `AUTH_JWT_SECRET`)
-- [ ] Add Spring Security config and JWT filter
-- [ ] Add basic integration tests and HTTP test file
-- [ ] Run and verify service locally on port 8081
+## Overview
 
-Goal
-Implement a secure authentication service that issues JWTs to customers and exposes a minimal identity API that other services and the frontend can use.
+The `auth-service` handles customer identity, registration, login, and JWT validation. It exposes a small REST API used by the frontend and by downstream services that need to validate tokens.
 
-Deliverables
-- REST endpoints:
-  - `POST /api/auth/register` — register a user
-  - `POST /api/auth/login` — authenticate and return JWT
-  - `GET  /api/auth/me` — returns current user profile (requires JWT)
-- H2 in-memory database for user storage (dev profile)
-- `application.yml` placeholders for JWT secret and expirations
-- HTTP test collection: `docs/http/auth-service.http`
+## Service summary
 
-Implementation notes
-- Use `spring-boot-starter-security`, `spring-boot-starter-data-jpa`, H2, and `jjwt`.
-- Passwords must be stored hashed with `BCryptPasswordEncoder`.
-- JWT secret must be read from `AUTH_JWT_SECRET` environment variable.
-- Keep CORS enabled and externalized via `app.cors.allowed-origins`.
+- Module: `auth-service`
+- Default port: `8081`
+- Main class: `AuthServiceApplication`
+- Main config: `src/main/resources/application.yml`
+- Security: Spring Security with stateless JWT-based authentication
 
-Local run (after implementation)
-```powershell
-# From repo root
-.\mvnw.cmd -pl auth-service spring-boot:run
-```
+## Key classes
 
-Verification
-1. Start service and call register endpoint.
-2. Call login and receive JWT.
-3. Call `/api/auth/me` with `Authorization: Bearer <token>` and confirm profile.
-4. Confirm user row in H2 console (if enabled).
+- `AuthServiceApplication`
+  - Bootstraps the Spring Boot application.
+- `SecurityConfig`
+  - Configures CORS, stateless session management, and JWT filter ordering.
+- `JwtUtil`
+  - Generates and validates JWTs, reads subject and userId claims.
+- `AuthController`
+  - Exposes `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, and `/api/auth/validate`.
+- `GlobalExceptionHandler`
+  - Centralizes REST error handling for invalid input and unexpected exceptions.
+- `UserRepository`
+  - JPA repository for users.
+- `UserEntity`
+  - User persistence entity in the auth database.
 
-Notes
-- Keep endpoints minimal and secure. We will extend identity/profile later when integrating with application-service and onboarding.
+## Authentication flow
 
+### Registration
+
+`POST /api/auth/register`
+
+- Accepts `RegisterRequest`
+- Creates a user record using the service layer
+- Returns a `UserProfileResponse`
+
+### Login
+
+`POST /api/auth/login`
+
+- Validates email/password
+- Generates a JWT with the user identifier and subject email
+- Returns an `AuthResponse`
+
+### Token validation
+
+`GET /api/auth/validate`
+
+- Reads the Bearer token from the `Authorization` header
+- Validates it via `AuthService.isTokenValid()`
+- Returns the token subject (email) when valid
+
+### Current user profile
+
+`GET /api/auth/me`
+
+- Requires a valid JWT from `JwtAuthenticationFilter`
+- Looks up the current user profile by ID
+
+## Security behavior
+
+- Session management is stateless
+- Spring Security is configured to permit only the auth endpoints publicly
+- `JwtAuthenticationFilter` is added before `UsernamePasswordAuthenticationFilter`
+- CORS defaults to `http://localhost:3000`
+
+## Relevant dependencies and configuration
+
+- Password hashing is done with `BCryptPasswordEncoder`
+- JWT secret and expiration are set in `application.yml`
+- Service is configured to run with H2 in-memory persistence for local development
+
+## Current status
+
+The auth module is the identity and token service for the platform. It is working as the entry point for customer registration, login, and downstream authorization checks.

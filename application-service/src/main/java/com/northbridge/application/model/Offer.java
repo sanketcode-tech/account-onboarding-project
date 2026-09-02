@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+/**
+ * JPA entity representing an offer produced for an application (offer.ready / offer.accepted lifecycle).
+ */
 @Entity
 @Table(name = "offers", uniqueConstraints = {
         @UniqueConstraint(name = "uk_offer_application_id", columnNames = "application_id")

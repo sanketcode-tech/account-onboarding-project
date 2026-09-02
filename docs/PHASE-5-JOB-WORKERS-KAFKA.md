@@ -1,49 +1,91 @@
-# Phase 5 — Job workers & Kafka integration
+# Phase 5 — Job workers + Kafka integration
 
-Checklist
-- [ ] Implement Zeebe job workers in `onboarding-service` for all Service Tasks
-  - PersistApplicationWorker
-  - PublishApplicationSubmittedWorker
-  - PublishOfferReadyWorker
-  - ProvisionAccountWorker
-  - PublishAccountActivatedWorker
-- [ ] Implement Kafka consumers to correlate `offer.accepted` and `document.signed` messages back to Zeebe process instances
-- [ ] Ensure `applicationId` is used as the correlation key when completing/continuing process instances
-- [ ] Configure Spring Kafka `KafkaTemplate` (producer) and `@KafkaListener` (consumer)
-- [ ] Add retries and error handling for workers and Kafka listeners
-- [ ] Test with local Kafka and verify end-to-end flow for automated steps
+## Overview
 
-Goal
-Wire the `onboarding-service` to act as the orchestration glue: Zeebe job workers execute service tasks and publish events to Kafka; Kafka consumers correlate incoming messages to waiting process instances.
+The onboarding service contains the system's task workers and event listeners. These workers execute the BPMN tasks, and Kafka listeners correlate external domain events back into the running Camunda process.
 
-Deliverables
-- Zeebe job worker implementations in `onboarding-service/src/main/java/com/northbridge/onboarding/worker/`
-- Kafka producers publishing `common-lib` event DTOs to the right topics
-- Kafka listeners that, on consumption, call Zeebe to correlate messages (by `applicationId`)
-- Logs (SLF4J) at each step for traceability
+## Service configuration
 
-Implementation notes
-- Use `camunda-client-java` or Camunda Spring Boot starter if added in Phase 4/5
-- For Kafka, prefer Spring Kafka with `JacksonJsonDeserializer`/`JacksonJsonSerializer` using `com.northbridge.common.events` package
-- Make job workers idempotent where possible
+- Module: `onboarding-service`
+- Default port: `8083`
+- Kafka bootstrap is configured in `application.yml`
+- Camunda Cloud client configuration is present, but deployment is controlled with flags such as `BPMN_DEPLOYMENT_ENABLED` and `PROCESS_DEPLOYER_ENABLED`
 
-Local run
-```powershell
-# Start Kafka
-# Start application-service (to accept and persist application)
-.
-# Start onboarding-service (job workers)
-.\mvnw.cmd -pl onboarding-service spring-boot:run
-```
+## Core workers
 
-Verification
-1. Submit an application via application-service.
-2. Confirm `application.submitted` event published to Kafka.
-3. Confirm Zeebe job worker processes `PersistApplication` and subsequent tasks.
-4. Simulate `offer.ready` and `offer.accepted` messages and confirm process proceeds.
-5. Check logs for successful correlation and job completions.
+### `ValidateApplicationWorker`
 
-Notes
-- Keep job type names and BPMN service task `type` attributes consistent between model and worker code.
-- Consider temporarily shortening timers in BPMN while testing escalations.
+- Type: `validate-application`
+- Responsibility: validate required fields (`applicationId`, `applicantName`, `email`)
+- If required fields are missing, throws a `BpmnError("VALIDATION_FAILED", ...)`
+- Completes the job with `validationPassed` and `validationResult`
 
+### `PublishOfferWorker`
+
+- Type: `publish-offer`
+- Responsibility: creates `OfferReadyEvent` and sends it to Kafka topic `offer.ready`
+- Completes the job with `offerPublished`, `offerId`, and `offeredLimit`
+
+### `PublishDocumentWorker`
+
+- Type: `publish-document`
+- Responsibility: creates `DocumentSigningRequestEvent` and sends it to Kafka topic `document.requested`
+- Completes the job with `documentPublished` and `documentId`
+
+### `PublishDeclinedWorker`
+
+- Type: `publish-declined`
+- Responsibility: derives a decline reason and emits `ApplicationDeclinedEvent` on topic `application.declined`
+- Completes the job with `applicationDeclined` and the decline reason
+
+### `ActivateAccountWorker`
+
+- Type: `activate-account`
+- Responsibility: persists an `Account` record and validates `applicationId`
+- Completes the job with `accountActivated` and `accountId`
+
+### `PublishActivatedWorker`
+
+- Type: `publish-activated`
+- Responsibility: emits `AccountActivatedEvent` to Kafka topic `account.activated`
+- Completes the job with `accountPublished` and `accountId`
+
+## Kafka listeners and correlation
+
+### `ApplicationSubmittedListener`
+
+- Consumer group: `onboarding-service`
+- Topic: `application.submitted`
+- Responsibility: parse the payload and start the BPMN process with `camundaClient.newCreateInstanceCommand()`
+- The BPMN process id is `current-account-onboarding`
+
+### `KafkaMessageCorrelator`
+
+- Topic listeners:
+  - `offer.accepted`
+  - `document.signed`
+- Responsibility: deserialize each event and publish a Camunda message with the matching message name
+- Message names used:
+  - `OfferAccepted`
+  - `DocumentSigned`
+
+### `KafkaCorrelationListener`
+
+- Legacy no-op placeholder kept for compatibility
+- The code comments indicate this is intentionally not the active correlation path
+
+## Kafka topics in onboarding-service
+
+| Topic | Produced by | Consumed by |
+| --- | --- | --- |
+| `application.submitted` | `application-service` | `ApplicationSubmittedListener` |
+| `offer.accepted` | `application-service` | `KafkaMessageCorrelator` |
+| `document.signed` | `document-service` | `KafkaMessageCorrelator` |
+| `offer.ready` | `PublishOfferWorker` | `application-service` |
+| `document.requested` | `PublishDocumentWorker` | `document-service` |
+| `application.declined` | `PublishDeclinedWorker` | none currently implemented |
+| `account.activated` | `PublishActivatedWorker` | none currently implemented |
+
+## Current status
+
+The onboarding service is the orchestration and integration hub: it manages the process workers and it is the place where Kafka domain events are turned back into BPMN process messages.

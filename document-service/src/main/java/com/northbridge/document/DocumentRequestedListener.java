@@ -9,6 +9,9 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Listens for document.requested events and persists initial Document records for signing/upload.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

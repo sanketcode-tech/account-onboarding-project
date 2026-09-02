@@ -1,54 +1,118 @@
-# Phase 4 — BPMN design & deploy to Camunda 8 SaaS
+# Phase 4 — BPMN + Camunda
 
-Checklist
-- [ ] Model the BPMN diagram `current-account-onboarding.bpmn` in Camunda Desktop Modeler
-- [ ] Include elements: Start, Service Tasks, User Tasks, Message Catch Events, Exclusive Gateway, Boundary Timers
-- [ ] Ensure correlation key is `applicationId` for all message events
-- [ ] Add boundary timer events: Signing Ceremony (48 hours), Provisioning Approval (24 hours)
-- [ ] Deploy BPMN manually from Modeler to Camunda 8 SaaS (manual deploy for iteration)
-- [ ] Verify process in Operate; claim/complete tasks in Tasklist
-- [ ] Add BPMN file to `docs/bpmn/current-account-onboarding.bpmn` (placeholder)
+## Overview
 
-Goal
-Design the exact BPMN flow for Current Account Onboarding and deploy it to Camunda 8 SaaS so the Zeebe engine hosts the process model. We'll iterate manually in the Modeler, then configure `onboarding-service` to optionally deploy programmatically.
+The orchestration layer uses Camunda 8 and a BPMN process definition called `current-account-onboarding.bpmn`. The process is started when an `application.submitted` message arrives and is enriched with Kafka-correlation listeners and task workers in the onboarding service.
 
-Deliverables
-- BPMN file `docs/bpmn/current-account-onboarding.bpmn` (author in Camunda Modeler)
-- Deployment notes and the process id/key used for starting instances
-- Documentation of message names and variable payload shapes for correlation (use `applicationId`)
+## BPMN file
 
-Implementation notes
-- Use Message Throw/Catch Event semantics for the Kafka-driven waits (offer accepted, document signed).
-- Service Tasks for automated steps should be implemented as Zeebe jobs (external job workers) in `onboarding-service` during Phase 5.
-- Do not programmatically deploy until process is stable; manual deployment from Modeler is preferred for iteration.
+- File: `onboarding-service/src/main/resources/bpmn/current-account-onboarding.bpmn`
+- Process ID: `current-account-onboarding`
 
-Code wiring status
-- The consumer in `application-service` is already wired to call a workflow service when an application event is received. See:
+## Main process structure
 
-```
-application-service/src/main/java/com/northbridge/application/service/KafkaConsumerListener.java
-application-service/src/main/java/com/northbridge/application/service/WorkflowServiceImpl.java
-```
+### Happy path
 
-`WorkflowServiceImpl` is currently a safe placeholder: it checks for `CAMUNDA_*` env vars and logs guidance. Replace the TODO in that implementation with the Zeebe client call to create process instances once you have deployed the BPMN model.
+1. `Event_ApplicationSubmitted`
+   - Start event triggered when the app processes a Kafka application submission.
+2. `Task_ValidateApplication`
+   - Validates required application fields.
+3. `Task_PublishOffer`
+   - Produces `offer.ready`.
+4. `Gateway_0ex282m`
+   - Event-based gateway: waits for offer response or timeout.
+5. `Event_WaitOfferAccepted`
+   - Receives the `OfferAccepted` message via Camunda message correlation.
+6. `Task_PublishDocument`
+   - Produces `document.requested`.
+7. `Gateway_0xivmcz`
+   - Event-based gateway: waits for document signed or document timeout.
+8. `Event_WaitDocumentSigned`
+   - Receives the `DocumentSigned` message.
+9. `Task_SigningCeremony`
+   - Human review task.
+10. `Gateway_1avtep0` (`Signing Approved?`)
+    - Approve path continues; reject path declines.
+11. `Task_ProvisioningApproval`
+    - Human review task for provisioning decision.
+12. `Gateway_1dbkhuu` (`Provisioning Approved?`)
+    - Approve path activates account; reject path declines.
+13. `Task_ActivateAccount`
+    - Persists the account record.
+14. `Task_PublishActivated`
+    - Produces `account.activated`.
+15. `Event_Success`
+    - End event for onboarding completion.
 
-Manual Deploy (Modeler)
-1. Open `current-account-onboarding.bpmn` in Camunda Desktop Modeler
-2. Set execution platform to Camunda 8
-3. Click Deploy and enter your Camunda SaaS Client ID/Secret, Cluster ID, and Region
-4. Confirm deployment in Camunda Operate
+## Event-based gateways and response races
 
-Verify
-- Start a test instance from Camunda Console or via `onboarding-service` API (once implemented)
-- Confirm User Tasks appear in Tasklist (Signing Ceremony, Provisioning Approval)
-- Confirm timers escalate when not actioned (you can shorten timers for testing)
+### Offer response gateway
 
-Programmatic deployment (optional)
-- `onboarding-service` includes a `ProcessDeployer` which can auto-deploy BPMN files from `classpath:/bpmn` at startup.
-- To enable programmatic deployment set `process.deployer.enabled=true` and ensure CAMUNDA_* env vars are set in your `.env`.
-- Example: run `onboarding-service` with `-Dprocess.deployer.enabled=true` or set the environment variable.
+- Gateway: `Gateway_0ex282m`
+- Name: `Offer Response?`
+- It waits for one of the following:
+  - `OfferAccepted` message event
+  - `Offer Expired (72h)` timeout event
 
-Notes
-- Keep process variables minimal and clear: `applicationId`, `customerId`, `offerId`, `documentId`, `accountId`, `status`.
-- Document all message names and expected JSON structure for Kafka events in `docs/bpmn/README.md`.
+### Document response gateway
 
+- Gateway: `Gateway_0xivmcz`
+- Name: `Document Response?`
+- It waits for one of the following:
+  - `DocumentSigned` message event
+  - `Document Signing Expired (48h)` timeout event
+
+These event-based gateways are the mechanism that decouples the process from the external Kafka-driven events.
+
+## Human approval decisions
+
+### Signing Ceremony approval
+
+- User task: `Task_SigningCeremony`
+- Exclusive gateway: `Gateway_1avtep0` (`Signing Approved?`)
+- Branches:
+  - approved -> continue to provisioning approval
+  - rejected / default decline -> go to decline path
+
+### Provisioning approval
+
+- User task: `Task_ProvisioningApproval`
+- Exclusive gateway: `Gateway_1dbkhuu` (`Provisioning Approved?`)
+- Branches:
+  - approved -> activation path
+  - rejected / default decline -> decline path
+
+## Consolidated decline path
+
+The project has a single decline flow rather than multiple special-case closure routes.
+
+- `Task_PublishDeclined`
+  - Publishes `application.declined` to Kafka
+- `Event_Declined`
+  - End event reached from validation failures, timeouts, or approval rejections
+
+This is the central terminal path for unsuccessful onboarding outcomes.
+
+## Camunda message names used by process correlation
+
+- `OfferAccepted`
+- `DocumentSigned`
+
+These message names are used when `KafkaMessageCorrelator` publishes correlation messages back into the running BPMN process.
+
+## Service mapping to BPMN
+
+| BPMN task | Worker / class |
+| --- | --- |
+| `Task_ValidateApplication` | `ValidateApplicationWorker` |
+| `Task_PublishOffer` | `PublishOfferWorker` |
+| `Task_PublishDocument` | `PublishDocumentWorker` |
+| `Task_ActivateAccount` | `ActivateAccountWorker` |
+| `Task_PublishActivated` | `PublishActivatedWorker` |
+| `Task_PublishDeclined` | `PublishDeclinedWorker` |
+| message-catch events | `KafkaMessageCorrelator` |
+| process start | `ApplicationSubmittedListener` |
+
+## Current status
+
+The BPMN process is the orchestration backbone of the onboarding platform and is where the event-driven and human-review branches are joined together.

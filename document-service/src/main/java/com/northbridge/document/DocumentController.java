@@ -14,6 +14,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
 
+/**
+ * REST controller exposing document retrieval, file download/upload and signing endpoints for the customer-facing API.
+ */
 @RestController
 @RequestMapping("/api/documents")
 @RequiredArgsConstructor
@@ -44,9 +47,19 @@ public class DocumentController {
     public ResponseEntity<byte[]> getFile(@PathVariable String applicationId, @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
             String subject = authClient.validateAndGetSubject(authorization);
-            String owner = offerClient.getCustomerIdForApplication(applicationId, authorization);
+            String owner;
+            try {
+                owner = offerClient.getCustomerIdForApplication(applicationId, authorization);
+            } catch (org.springframework.web.client.HttpClientErrorException.Forbidden forbiddenEx) {
+                // upstream service forbidden — allow if caller has OFFICER role
+                if (authClient.tokenHasRole(authorization, "OFFICER")) {
+                    owner = subject; // treat as allowed
+                } else {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner not found");
+                }
+            }
             if (owner == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner not found");
-            if (!subject.equals(owner)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this applicationId");
+            if (!subject.equals(owner) && !authClient.tokenHasRole(authorization, "OFFICER")) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this applicationId");
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }

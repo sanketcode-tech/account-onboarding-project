@@ -19,6 +19,9 @@ import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Kafka configuration: producer/consumer factories and Kafka templates used by the document-service.
+ */
 @Configuration
 @EnableKafka
 public class KafkaConfig {

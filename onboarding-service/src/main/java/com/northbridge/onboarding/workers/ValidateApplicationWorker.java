@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * Camunda worker that validates required application fields during onboarding.
+ */
 @Slf4j
 @Component
 public class ValidateApplicationWorker {

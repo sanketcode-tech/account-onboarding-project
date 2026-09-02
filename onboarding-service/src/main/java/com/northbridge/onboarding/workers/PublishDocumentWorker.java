@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+/**
+ * Camunda worker that publishes DocumentSigningRequestEvent to request customer document signing.
+ */
 @Slf4j
 @Component
 public class PublishDocumentWorker {

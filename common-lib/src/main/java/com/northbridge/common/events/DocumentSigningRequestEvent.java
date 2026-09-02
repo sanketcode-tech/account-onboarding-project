@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+/**
+ * Event published to request customer signature for a document (topic: document.requested).
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

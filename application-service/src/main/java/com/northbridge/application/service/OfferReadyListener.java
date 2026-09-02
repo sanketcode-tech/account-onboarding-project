@@ -13,6 +13,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Listens for offer.ready events and persists Offer records for application-service.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

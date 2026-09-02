@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * REST controller exposing offer view and accept endpoints for customers.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/offers")

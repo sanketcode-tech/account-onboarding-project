@@ -1,44 +1,54 @@
-# Phase 7 — Frontend: serve static pages on port 3000
+# Phase 7 — Frontend
 
-Checklist
-- [ ] Finalize frontend pages (login, apply, thank-you, offer, upload-document, status)
-- [ ] Wire frontend JS to backend endpoints and test CORS
-- [ ] Ensure JWT is stored in `sessionStorage` and applied to API calls
-- [ ] Add client-side validation for required fields
-- [ ] Serve frontend with `http-server` or `live-server` on port 3000
-- [ ] Add `.http` test files for common flows
+## Overview
 
-Goal
-Provide a clean, vanilla-JS frontend that allows customers to log in, submit applications, accept offers, upload signed documents, and view status. Serve the static site separately on port 3000.
+The repository includes a static frontend in `frontend/`. It is a browser-based UI for authentication, application submission, offer viewing, document upload/signing, and onboarding status checks. The frontend references the backend services with fixed host/port values.
 
-Deliverables
-- `frontend/index.html` (templates for pages)
-- `frontend/css/styles.css` (branding)
-- `frontend/js/app.js` (API calls, JWT handling, UI rendering)
-- `frontend/README.md` with serve instructions
+## Frontend entry points
 
-Implementation notes
-- All backend services must enable CORS for `http://localhost:3000` (property `app.cors.allowed-origins`)
-- Keep UI minimal and accessible; no frontend frameworks
+The frontend code references these backend URLs:
 
-Local run
-```powershell
-cd frontend
-# Option A: http-server
-npx http-server . -p 3000
-# Option B: live-server (auto reload)
-npx live-server --port=3000
-# Option C: python
-python -m http.server 3000
-```
+- Auth: `http://localhost:8081/api/auth`
+- Application: `http://localhost:8082/api/applications`
+- Status/onboarding: `http://localhost:8083/api/status`
+- Document: `http://localhost:8084/api/documents`
 
-Verification
-1. Open `http://localhost:3000`
-2. Register/login using `auth-service` endpoints
-3. Submit an application and ensure API calls return success
-4. Accept an offer (simulate via backend/Camunda) and upload a document
-5. Confirm status page shows lifecycle progression
+## What the frontend does
 
-Notes
-- The frontend currently includes basic sample logic in `frontend/js/app.js`; extend as services become available.
+The `frontend/js/app.js` code contains the application layer used to:
 
+- sign in / log in
+- create and submit applications
+- view or accept offers
+- check onboarding status
+- download or upload document files
+
+## Service integration points
+
+### Auth service
+
+- `auth-service` is used for login and registration flows
+- Token is used as an Authorization bearer token with downstream services
+
+### Application service
+
+- Used to submit applications and fetch offer progress
+- Offer acceptance calls the `OfferController` endpoints in application-service
+
+### Onboarding service
+
+- Frontend is expected to query onboarding status from the status endpoints exposed by the service layer
+- The BPMN workflow itself is driven by process state and events, not directly by the browser
+
+### Document service
+
+- Used to upload and fetch document files
+- `signing-ceremony-form.form` in onboarding-service includes a link to the document file endpoint for review
+
+## CORS note
+
+Cross-origin browser access is configured around the `app.cors.allowed-origins` property in auth-service and other environment configuration. The expected browser origin is `http://localhost:3000`.
+
+## Current status
+
+The frontend is a simple UI layer and not a separate microservice. It is a client that exercises the REST endpoints and the Kafka-driven onboarding workflow behind the scenes.

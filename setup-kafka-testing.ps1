@@ -82,7 +82,7 @@ Write-Host ""
 Write-Host "  # Submit application (JSON)" -ForegroundColor Gray
 Write-Host "  curl -X POST http://localhost:8082/api/v1/applications/submit ``" -ForegroundColor White
 Write-Host "       -H `"Content-Type: application/json`" ``" -ForegroundColor White
-Write-Host "       -d '{`"applicationId`":`"APP-2026-001`",`"applicantName`":`"Sanket Dhake`",`"email`":`"sanket@example.com`",`"status`":`"SUBMITTED`",`"eventType`":`"APPLICATION_SUBMITTED`"}';" -ForegroundColor White
+Write-Host "       -d '{`"applicationId`":`"APP-2026-001`",`"applicantName`":`"John Doe`",`"email`":`"john.doe@example.com`",`"status`":`"SUBMITTED`",`"eventType`":`"APPLICATION_SUBMITTED`"}'" -ForegroundColor White
 Write-Host ""
 
 Write-Host "================================" -ForegroundColor Green
