@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Northbridge Bank — Apply for Current Account</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="navbar-brand">Northbridge Bank</div>
+    <div class="navbar-menu">
+        <a href="index.html">Home</a>
+        <a href="status.html">Status</a>
+        <a href="login.html" id="nav-login">Login</a>
+        <button id="nav-logout" class="btn-logout hidden">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h1>Apply for a Current Account</h1>
+
+    <div id="error-banner" class="alert alert-error hidden" role="alert"></div>
+    <div id="success-banner" class="alert alert-success hidden" role="status"></div>
+
+    <form id="application-form">
+        <div class="form-group">
+            <label for="fullName">Full name</label>
+            <input id="fullName" name="fullName" type="text" required />
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required />
+        </div>
+        <div class="form-group">
+            <label for="dob">Date of birth</label>
+            <input id="dob" name="dob" type="date" required />
+        </div>
+        <div class="form-group">
+            <label for="panNumber">PAN number</label>
+            <input id="panNumber" name="panNumber" type="text" required />
+        </div>
+        <div class="form-group">
+            <label for="address">Address</label>
+            <textarea id="address" name="address" required></textarea>
+        </div>
+
+        <fieldset>
+            <legend>Employment</legend>
+            <div class="form-group">
+                <label for="occupation">Occupation</label>
+                <input id="occupation" name="occupation" type="text" required />
+            </div>
+            <div class="form-group">
+                <label for="annualIncome">Annual income</label>
+                <input id="annualIncome" name="annualIncome" type="number" required />
+            </div>
+            <div class="form-group">
+                <label for="employerName">Employer name</label>
+                <input id="employerName" name="employerName" type="text" required />
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Preferences</legend>
+            <div class="form-group">
+                <label for="branch">Preferred branch</label>
+                <input id="branch" name="branch" type="text" />
+            </div>
+            <div class="form-group">
+                <label for="initialDeposit">Initial deposit</label>
+                <input id="initialDeposit" name="initialDeposit" type="number" />
+            </div>
+            <div class="form-group">
+                <label><input id="debitCard" name="debitCard" type="checkbox" /> Require debit card</label>
+            </div>
+        </fieldset>
+
+        <div class="flex" style="justify-content:space-between; align-items:center; margin-top:1rem;">
+            <button id="submit-btn" class="btn" type="submit">Submit Application</button>
+            <div id="spinner" class="spinner hidden" aria-hidden="true"></div>
+        </div>
+    </form>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    (function(){
+        // Protect page — require login
+        if (!window.auth || !window.auth.getToken()) {
+            // redirect to login
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Update nav
+        document.getElementById('nav-login').classList.add('hidden');
+        document.getElementById('nav-logout').classList.remove('hidden');
+        document.getElementById('nav-logout').addEventListener('click', () => { window.auth.logout(); });
+
+        const form = document.getElementById('application-form');
+        const errorBanner = document.getElementById('error-banner');
+        const successBanner = document.getElementById('success-banner');
+        const spinner = document.getElementById('spinner');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function showError(msg){ errorBanner.textContent = msg; errorBanner.classList.remove('hidden'); }
+        function clearError(){ errorBanner.textContent = ''; errorBanner.classList.add('hidden'); }
+        function showSuccess(msg){ successBanner.textContent = msg; successBanner.classList.remove('hidden'); }
+        function clearSuccess(){ successBanner.textContent = ''; successBanner.classList.add('hidden'); }
+        function setLoading(loading){ if(loading){ spinner.classList.remove('hidden'); submitBtn.disabled = true; } else { spinner.classList.add('hidden'); submitBtn.disabled = false; } }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); clearError(); clearSuccess(); setLoading(true);
+
+            // Build application event according to application-service model
+            const applicationId = 'app-' + Date.now();
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const payload = {
+                personalDetails: {
+                    fullName,
+                    dob: document.getElementById('dob').value,
+                    panNumber: document.getElementById('panNumber').value.trim(),
+                    address: document.getElementById('address').value.trim()
+                },
+                employmentDetails: {
+                    occupation: document.getElementById('occupation').value.trim(),
+                    annualIncome: parseFloat(document.getElementById('annualIncome').value || 0),
+                    employerName: document.getElementById('employerName').value.trim()
+                },
+                preferences: {
+                    branch: document.getElementById('branch').value.trim(),
+                    initialDeposit: parseFloat(document.getElementById('initialDeposit').value || 0),
+                    debitCardRequired: document.getElementById('debitCard').checked
+                }
+            };
+
+            const event = {
+                applicationId,
+                applicantName: fullName,
+                email,
+                status: 'SUBMITTED',
+                payload: payload,
+                eventType: 'APPLICATION_SUBMITTED',
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                const res = await window.apiClient.post(window.apiClient.defaults.application + '/submit', event);
+                if (res.status === 202 || res.ok) {
+                    // success
+                    showSuccess('Application submitted successfully. Application ID: ' + applicationId);
+                    sessionStorage.setItem('currentApplicationId', applicationId);
+                    // redirect to status page after short delay so user sees the confirmation
+                    setTimeout(() => { window.location.href = 'status.html?applicationId=' + encodeURIComponent(applicationId); }, 1500);
+                } else {
+                    let msg = 'Failed to submit application';
+                    try { const body = await res.json(); msg = body.message || JSON.stringify(body); } catch(e){}
+                    showError(msg);
+                }
+            } catch (err) {
+                console.error(err);
+                showError(err.message || 'Unexpected error submitting application');
+            } finally { setLoading(false); }
+        });
+    })();
+</script>
+</body>
+</html>

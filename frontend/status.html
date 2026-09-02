@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Northbridge Bank — Application Status</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="navbar-brand">Northbridge Bank</div>
+    <div class="navbar-menu">
+        <a href="index.html">Home</a>
+        <a href="apply.html">Apply</a>
+        <a href="login.html" id="nav-login">Login</a>
+        <button id="nav-logout" class="btn-logout hidden">Logout</button>
+    </div>
+</div>
+
+<div class="container" id="main-container">
+    <h1>Application Status</h1>
+
+    <div id="status-banner" class="alert alert-info hidden"></div>
+    <div id="status-area">
+        <div id="loading" class="flex"><div class="spinner"></div><div style="margin-left:0.75rem;">Waiting for application updates...</div></div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    (function(){
+        // Require login
+        if (!window.auth || !window.auth.getToken()) { window.location.href = 'login.html'; return; }
+        document.getElementById('nav-login').classList.add('hidden');
+        document.getElementById('nav-logout').classList.remove('hidden');
+        document.getElementById('nav-logout').addEventListener('click', () => window.auth.logout());
+
+        const params = new URLSearchParams(window.location.search);
+        const paramAppId = params.get('applicationId');
+        const sessAppId = sessionStorage.getItem('currentApplicationId');
+        const applicationId = paramAppId || sessAppId;
+
+        const statusArea = document.getElementById('status-area');
+        const statusBanner = document.getElementById('status-banner');
+
+        if (!applicationId) {
+            statusArea.innerHTML = '<p>No application selected. Please submit an application first.</p>';
+            return;
+        }
+
+        let pollHandle = null;
+        const POLL_INTERVAL = 5000;
+
+        function showBanner(msg){ statusBanner.textContent = msg; statusBanner.classList.remove('hidden'); }
+        function hideBanner(){ statusBanner.textContent = ''; statusBanner.classList.add('hidden'); }
+
+        function renderOffer(offer) {
+            const badgeClass = offer.status === 'PENDING' ? 'badge-pending' : (offer.status === 'ACCEPTED' ? 'badge-approved' : 'badge-rejected');
+            const statusHtml = `<span class="status-badge ${badgeClass}">${offer.status}</span>`;
+            const offeredLimit = offer.offeredLimit ? offer.offeredLimit : 'N/A';
+            return `
+                <div style="margin-bottom:1rem;">
+                    <div class="flex" style="justify-content:space-between; align-items:center;">
+                        <div>
+                            <p><strong>Application ID:</strong> ${offer.applicationId}</p>
+                            <p><strong>Offer ID:</strong> ${offer.offerId}</p>
+                            <p><strong>Offered Limit:</strong> ${offeredLimit}</p>
+                        </div>
+                        <div style="text-align:right;">
+                            ${statusHtml}
+                            <div style="margin-top:0.5rem;">
+                                ${offer.status === 'PENDING' ? '<button id="accept-offer" class="btn">Accept Offer</button>' : ''}
+                                <button id="view-offer" class="btn btn-secondary">View Offer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderWaitingForOffer() {
+            return `
+                <div class="container">
+                    <p>Your application (<strong>${applicationId}</strong>) is under review. We will notify you when an offer is ready.</p>
+                    <div class="flex"><div class="spinner"></div><div>Checking for updates</div></div>
+                </div>
+            `;
+        }
+
+        async function fetchOfferOnce() {
+            try {
+                const res = await window.apiClient.get(window.apiClient.defaults.offers + '/' + encodeURIComponent(applicationId));
+                if (res.status === 200) {
+                    const data = await res.json();
+                    return { ok:true, data };
+                } else if (res.status === 404) {
+                    return { ok:false, status:404 };
+                } else {
+                    const body = await res.text();
+                    return { ok:false, status:res.status, body };
+                }
+            } catch (err) {
+                return { ok:false, error: err };
+            }
+        }
+
+        async function poll() {
+            hideBanner();
+            statusArea.innerHTML = '';
+            const res = await fetchOfferOnce();
+            if (res.ok) {
+                const offer = res.data;
+                statusArea.innerHTML = renderOffer(offer);
+                document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(offer));
+                const acceptBtn = document.getElementById('accept-offer');
+                if (acceptBtn) {
+                    acceptBtn.addEventListener('click', async () => {
+                        acceptBtn.disabled = true; acceptBtn.textContent = 'Accepting...';
+                        try {
+                            const acceptRes = await window.apiClient.post(window.apiClient.defaults.offers + '/' + encodeURIComponent(applicationId) + '/accept', {});
+                            if (acceptRes.ok) {
+                                const accepted = await acceptRes.json();
+                                showBanner('Offer accepted successfully.');
+                                // re-render immediately with accepted state
+                                statusArea.innerHTML = renderOffer(accepted);
+                                document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(accepted));
+                            } else {
+                                let msg = 'Failed to accept offer';
+                                try { const b = await acceptRes.json(); msg = b.error || b.message || JSON.stringify(b); } catch(e){}
+                                showBanner(msg);
+                                acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            showBanner('Network error while accepting offer');
+                            acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
+                        }
+                    });
+                }
+            } else if (res.status === 404) {
+                statusArea.innerHTML = renderWaitingForOffer();
+            } else {
+                const message = res.body || (res.error && res.error.message) || 'Unexpected error';
+                statusArea.innerHTML = `<div class="alert alert-error">${message}</div>`;
+            }
+        }
+
+        function showPrintableOffer(offer) {
+            const w = window.open('', '_blank');
+            const html = `
+                <html>
+                <head>
+                    <title>Offer ${offer.offerId}</title>
+                    <style>
+                        body { font-family: -apple-system,BlinkMacSystemFont, 'Segoe UI', Roboto, Arial; padding:2rem; color:#1a3a52 }
+                        .card { border:1px solid #ddd; padding:1rem; border-radius:8px; max-width:720px }
+                        h1 { color:#1a3a52 }
+                        .muted { color:#666 }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <h1>Northbridge Bank — Offer</h1>
+                        <p><strong>Application ID:</strong> ${offer.applicationId}</p>
+                        <p><strong>Offer ID:</strong> ${offer.offerId}</p>
+                        <p><strong>Offered Limit:</strong> ${offer.offeredLimit}</p>
+                        <p><strong>Status:</strong> ${offer.status}</p>
+                        <p class="muted">Generated: ${offer.createdAt ? new Date(offer.createdAt).toLocaleString() : ''}</p>
+                        <hr />
+                        <p>This is the offer produced for your application. Please accept the offer in the online portal to proceed with signing.</p>
+                        <div style="margin-top:1.5rem;"><button onclick="window.print();">Print</button></div>
+                    </div>
+                </body>
+                </html>
+            `;
+            w.document.write(html);
+            w.document.close();
+        }
+
+        // Start polling
+        poll();
+        pollHandle = setInterval(poll, POLL_INTERVAL);
+
+        // Clean up on unload
+        window.addEventListener('beforeunload', () => { if (pollHandle) clearInterval(pollHandle); });
+
+    })();
+</script>
+</body>
+</html>

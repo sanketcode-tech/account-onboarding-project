@@ -1,0 +1,34 @@
+/* Additional shared UI components: spinner, status badges */
+
+/* Spinner */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid rgba(26,58,82,0.12);
+  border-top-color: #1a3a52;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+}
+.badge-pending { background: #f0ad4e; } /* amber */
+.badge-approved { background: #28a745; } /* green */
+.badge-rejected { background: #dc3545; } /* red */
+.badge-signed { background: #17a2b8; } /* teal */
+.badge-uploaded { background: #6f42c1; } /* purple */
+.badge-info { background: #1a3a52; }
+
+/* Small utility */
+.flex { display:flex; gap:0.75rem; align-items:center; }
+.hidden { display:none !important; }
+

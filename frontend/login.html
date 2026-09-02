@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Northbridge Bank — Login</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="navbar">
+    <div class="navbar-brand">Northbridge Bank</div>
+    <div class="navbar-menu">
+        <a href="index.html">Home</a>
+        <a href="register.html">Register</a>
+    </div>
+</div>
+
+<div class="container" style="max-width:420px; margin-top:3rem;">
+    <h1>Customer Login</h1>
+
+    <div id="error-banner" class="alert alert-error hidden" role="alert"></div>
+
+    <form id="login-form">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required />
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required minlength="6" />
+        </div>
+
+        <div class="flex" style="justify-content:space-between; align-items:center;">
+            <button id="submit-btn" class="btn" type="submit">Login</button>
+            <div id="spinner" class="spinner hidden" aria-hidden="true"></div>
+        </div>
+    </form>
+
+    <p style="margin-top:1rem; font-size:0.95rem; color:#666;">Don't have an account? <a href="register.html">Register</a></p>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    (function(){
+        const form = document.getElementById('login-form');
+        const errorBanner = document.getElementById('error-banner');
+        const spinner = document.getElementById('spinner');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function showError(msg){ errorBanner.textContent = msg; errorBanner.classList.remove('hidden'); }
+        function clearError(){ errorBanner.textContent = ''; errorBanner.classList.add('hidden'); }
+        function setLoading(loading){ if(loading){ spinner.classList.remove('hidden'); submitBtn.disabled = true; } else { spinner.classList.add('hidden'); submitBtn.disabled = false; } }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); clearError(); setLoading(true);
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            try {
+                const res = await window.apiClient.post(window.apiClient.defaults.auth + '/login', { email, password });
+                if (res.ok) {
+                    const data = await res.json();
+                    const token = data.token;
+                    if (!token) throw new Error('No token returned from auth service');
+                    window.auth.setToken(token);
+                    // redirect to application form (stage 3)
+                    window.location.href = 'apply.html';
+                } else {
+                    let msg = 'Login failed';
+                    try { const body = await res.json(); msg = body.message || JSON.stringify(body); } catch(e){}
+                    showError(msg);
+                }
+            } catch (err) {
+                console.error(err);
+                showError(err.message || 'Login error');
+            } finally { setLoading(false); }
+        });
+    })();
+</script>
+</body>
+</html>
