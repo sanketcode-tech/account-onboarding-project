@@ -8,17 +8,24 @@
     <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-<div class="navbar">
-    <div class="navbar-brand">Northbridge Bank</div>
-    <div class="navbar-menu">
-        <a href="index.html">Home</a>
-        <a href="apply.html">Apply</a>
-        <a href="login.html" id="nav-login">Login</a>
-        <button id="nav-logout" class="btn-logout hidden">Logout</button>
-    </div>
-</div>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="Northbridge Bank home">
+            <span class="brand-mark">N</span>
+            <span>Northbridge Bank</span>
+        </a>
 
-<div class="container" id="main-container">
+        <nav class="header-nav" aria-label="Main navigation">
+            <a href="index.html">Home</a>
+            <a href="apply.html">Apply</a>
+            <a id="nav-login" href="login.html" class="btn btn-link">Log In</a>
+            <a id="nav-register" href="register.html" class="btn btn-primary">Register</a>
+            <button id="nav-logout" type="button" class="btn btn-ghost hidden">Log Out</button>
+        </nav>
+    </div>
+</header>
+
+<div class="container" id="main-container" style="margin-top:2rem; margin-bottom:2rem;">
     <h1>Application Status</h1>
 
     <div id="status-banner" class="alert alert-info hidden"></div>
@@ -33,9 +40,15 @@
     (function(){
         // Require login
         if (!window.auth || !window.auth.getToken()) { window.location.href = 'login.html'; return; }
-        document.getElementById('nav-login').classList.add('hidden');
+        document.getElementById('nav-login').textContent = 'Dashboard';
+        document.getElementById('nav-login').href = 'status.html';
+        document.getElementById('nav-register').textContent = 'View Status';
+        document.getElementById('nav-register').href = 'status.html';
         document.getElementById('nav-logout').classList.remove('hidden');
-        document.getElementById('nav-logout').addEventListener('click', () => window.auth.logout());
+        document.getElementById('nav-logout').addEventListener('click', function () {
+            window.auth.logout(false);
+            window.location.href = 'index.html';
+        });
 
         const params = new URLSearchParams(window.location.search);
         const paramAppId = params.get('applicationId');
@@ -56,10 +69,20 @@
         function showBanner(msg){ statusBanner.textContent = msg; statusBanner.classList.remove('hidden'); }
         function hideBanner(){ statusBanner.textContent = ''; statusBanner.classList.add('hidden'); }
 
+        function formatLimit(value) {
+            if (value === null || value === undefined) return 'N/A';
+            const n = Number(value);
+            if (Number.isNaN(n)) return 'N/A';
+            return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
         function renderOffer(offer) {
             const badgeClass = offer.status === 'PENDING' ? 'badge-pending' : (offer.status === 'ACCEPTED' ? 'badge-approved' : 'badge-rejected');
             const statusHtml = `<span class="status-badge ${badgeClass}">${offer.status}</span>`;
-            const offeredLimit = offer.offeredLimit ? offer.offeredLimit : 'N/A';
+            const offeredLimit = formatLimit(offer.offeredLimit);
+            const continueSigningBtn = offer.status === 'ACCEPTED'
+                ? '<button id="continue-signing" class="btn btn-primary">Continue to Signing</button>'
+                : '';
             return `
                 <div style="margin-bottom:1rem;">
                     <div class="flex" style="justify-content:space-between; align-items:center;">
@@ -70,8 +93,9 @@
                         </div>
                         <div style="text-align:right;">
                             ${statusHtml}
-                            <div style="margin-top:0.5rem;">
+                            <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:flex-end;">
                                 ${offer.status === 'PENDING' ? '<button id="accept-offer" class="btn">Accept Offer</button>' : ''}
+                                ${continueSigningBtn}
                                 <button id="view-offer" class="btn btn-secondary">View Offer</button>
                             </div>
                         </div>
@@ -85,6 +109,19 @@
                 <div class="container">
                     <p>Your application (<strong>${applicationId}</strong>) is under review. We will notify you when an offer is ready.</p>
                     <div class="flex"><div class="spinner"></div><div>Checking for updates</div></div>
+                </div>
+            `;
+        }
+
+        function renderProgress(status) {
+            const statuses = ['PENDING','SIGNED','UPLOADED'];
+            const idx = Math.max(0, statuses.indexOf((status||'PENDING').toUpperCase()));
+            return `
+                <div class="flex" style="gap:0.5rem; margin-top:1rem;">
+                    ${statuses.map((s,i) => {
+                        const cls = i <= idx ? (s === 'PENDING' ? 'badge-pending' : s === 'SIGNED' ? 'badge-signed' : 'badge-uploaded') : 'badge-info';
+                        return `<span class="status-badge ${cls}" style="opacity:${i<=idx?1:0.45}">${s}</span>`;
+                    }).join('')}
                 </div>
             `;
         }
@@ -109,11 +146,141 @@
         async function poll() {
             hideBanner();
             statusArea.innerHTML = '';
+
+            // First: check onboarding aggregated status (declined/activated) to override other views
+            try {
+                const stRes = await window.apiClient.get(window.apiClient.defaults.applications + '/' + encodeURIComponent(applicationId) + '/status');
+                if (stRes.status === 200) {
+                    const st = await stRes.json();
+                    if ((st.overallStatus || '').toUpperCase() === 'DECLINED') {
+                        statusArea.innerHTML = `
+                            <div class="container">
+                                <h2>Application Declined</h2>
+                                <div class="card" style="padding:1rem; margin-top:1rem;">
+                                    <p>Your application <strong>${applicationId}</strong> has been declined.</p>
+                                    <p><strong>Reason:</strong> ${st.declineReason || 'No reason provided'}</p>
+                                </div>
+                                <div style="margin-top:1rem;"><a class="btn" href="index.html">Return to home</a></div>
+                            </div>
+                        `;
+                        return; // show decline immediately
+                    }
+                    if ((st.overallStatus || '').toUpperCase() === 'ACTIVATED') {
+                        statusArea.innerHTML = `
+                            <div class="container">
+                                <h2>Account Activated</h2>
+                                <div class="card" style="padding:1rem; margin-top:1rem;">
+                                    <p><strong>Account ID:</strong> ${st.accountId}</p>
+                                    <p><strong>Offered Limit:</strong> ${formatLimit(st.offeredLimit)}</p>
+                                    <p><strong>Status:</strong> <span class="status-badge badge-approved">ACTIVE</span></p>
+                                    <p><strong>Activated at:</strong> ${st.activatedAt ? new Date(st.activatedAt).toLocaleString() : ''}</p>
+                                </div>
+                                <div style="margin-top:1rem;"><a class="btn" href="index.html">Return to home</a></div>
+                            </div>
+                        `;
+                        return;
+                    }
+                }
+            } catch (e) {
+                // ignore and fall back to individual checks below
+            }
+
+            // Priority: check if account already exists (account activated)
+            try {
+                const accRes = await window.apiClient.get(window.apiClient.defaults.accounts + '/' + encodeURIComponent(applicationId));
+                if (accRes.status === 200) {
+                    const account = await accRes.json();
+                    // Show activated view
+                    statusArea.innerHTML = `
+                        <div class="container">
+                            <h2>Account Activated</h2>
+                            <div class="card" style="padding:1rem; margin-top:1rem;">
+                                <p><strong>Account ID:</strong> ${account.accountId}</p>
+                                <p><strong>Offered Limit:</strong> ${formatLimit(account.offeredLimit)}</p>
+                                <p><strong>Status:</strong> <span class="status-badge badge-approved">${account.status || 'ACTIVE'}</span></p>
+                                <p><strong>Activated at:</strong> ${account.activatedAt ? new Date(account.activatedAt).toLocaleString() : ''}</p>
+                            </div>
+                            <div style="margin-top:1rem;"><a class="btn" href="index.html">Return to home</a></div>
+                        </div>
+                    `;
+                    return; // nothing more to poll once account is active
+                }
+            } catch (e) {
+                // ignore — account not ready or network error; continue polling other endpoints
+            }
+
+            // Next: check offer state
             const res = await fetchOfferOnce();
             if (res.ok) {
                 const offer = res.data;
+                // if offer accepted, check document status to show signing/provisioning waiting states
+                if ((offer.status || '').toUpperCase() === 'ACCEPTED') {
+                    // fetch document status
+                    try {
+                        const docRes = await window.apiClient.get(window.apiClient.defaults.documents + '/' + encodeURIComponent(applicationId));
+                        if (docRes.status === 200) {
+                            const doc = await docRes.json();
+                            const ds = (doc.status || '').toUpperCase();
+                            if (ds === 'PENDING') {
+                                statusArea.innerHTML = `
+                                    <div class="container">
+                                        <h2>Awaiting signature</h2>
+                                        <p>Your offer is accepted. Please complete the signing ceremony. <a class="btn btn-primary" href="document.html?applicationId=${encodeURIComponent(applicationId)}">Go to signing</a></p>
+                                        ${renderWaitingForOffer()}
+                                    </div>
+                                `;
+                                return;
+                            }
+                            if (ds === 'SIGNED') {
+                                statusArea.innerHTML = `
+                                    <div class="container">
+                                        <h2>Awaiting signing ceremony review</h2>
+                                        <p>We've received your signature and are reviewing it. This is a short approval step before provisioning.</p>
+                                        ${renderProgress('SIGNED')}
+                                    </div>
+                                `;
+                                return;
+                            }
+                            if (ds === 'UPLOADED') {
+                                statusArea.innerHTML = `
+                                    <div class="container">
+                                        <h2>Awaiting provisioning approval</h2>
+                                        <p>Your signed document has been uploaded and is awaiting final provisioning approval. No action is required.</p>
+                                        ${renderProgress('UPLOADED')}
+                                    </div>
+                                `;
+                                return;
+                            }
+                        } else if (docRes.status === 404) {
+                            // no document yet — prompt to sign
+                            statusArea.innerHTML = `
+                                <div class="container">
+                                    <h2>Offer accepted — awaiting signing</h2>
+                                    <p>Please sign the document to continue.</p>
+                                    <a class="btn" href="document.html?applicationId=${encodeURIComponent(applicationId)}">Go to signing</a>
+                                </div>
+                            `;
+                            return;
+                        }
+                    } catch (e) {
+                        // ignore and fall through
+                    }
+
+                    // fallback: show offer accepted state and allow continue to signing
+                    statusArea.innerHTML = renderOffer(offer);
+                    document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(offer));
+                    document.getElementById('continue-signing')?.addEventListener('click', () => {
+                        window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
+                    });
+                    return;
+                }
+
+                // offer not accepted yet — render offer or waiting state
                 statusArea.innerHTML = renderOffer(offer);
                 document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(offer));
+                document.getElementById('continue-signing')?.addEventListener('click', () => {
+                    window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
+                });
                 const acceptBtn = document.getElementById('accept-offer');
                 if (acceptBtn) {
                     acceptBtn.addEventListener('click', async () => {
@@ -126,6 +293,9 @@
                                 // re-render immediately with accepted state
                                 statusArea.innerHTML = renderOffer(accepted);
                                 document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(accepted));
+                                document.getElementById('continue-signing')?.addEventListener('click', () => {
+                                    window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
+                                });
                             } else {
                                 let msg = 'Failed to accept offer';
                                 try { const b = await acceptRes.json(); msg = b.error || b.message || JSON.stringify(b); } catch(e){}
@@ -165,7 +335,7 @@
                         <h1>Northbridge Bank — Offer</h1>
                         <p><strong>Application ID:</strong> ${offer.applicationId}</p>
                         <p><strong>Offer ID:</strong> ${offer.offerId}</p>
-                        <p><strong>Offered Limit:</strong> ${offer.offeredLimit}</p>
+                        <p><strong>Offered Limit:</strong> ${formatLimit(offer.offeredLimit)}</p>
                         <p><strong>Status:</strong> ${offer.status}</p>
                         <p class="muted">Generated: ${offer.createdAt ? new Date(offer.createdAt).toLocaleString() : ''}</p>
                         <hr />

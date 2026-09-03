@@ -8,17 +8,27 @@
     <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-<div class="navbar">
-    <div class="navbar-brand">Northbridge Bank</div>
-    <div class="navbar-menu">
-        <a href="index.html">Home</a>
-        <a href="register.html">Register</a>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="Northbridge Bank home">
+            <span class="brand-mark">N</span>
+            <span>Northbridge Bank</span>
+        </a>
+
+        <nav class="header-nav" aria-label="Main navigation">
+            <a href="index.html">Home</a>
+            <a id="nav-status" href="status.html">Status</a>
+            <a id="nav-login" href="login.html" class="btn btn-link">Log In</a>
+            <a id="nav-register" href="register.html" class="btn btn-primary">Register</a>
+            <button id="nav-logout" type="button" class="btn btn-ghost hidden">Log Out</button>
+        </nav>
     </div>
-</div>
+</header>
 
 <div class="container" style="max-width:420px; margin-top:3rem;">
     <h1>Customer Login</h1>
 
+    <div id="success-banner" class="alert alert-success hidden" role="status"></div>
     <div id="error-banner" class="alert alert-error hidden" role="alert"></div>
 
     <form id="login-form">
@@ -44,6 +54,32 @@
 <script src="js/auth.js"></script>
 <script>
     (function(){
+        const auth = window.auth;
+        const isLoggedIn = auth && typeof auth.isLoggedIn === 'function' ? auth.isLoggedIn() : false;
+        const successBanner = document.getElementById('success-banner');
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get('registered') === '1') {
+            successBanner.textContent = 'Registration successful. Please log in to continue.';
+            successBanner.classList.remove('hidden');
+        }
+
+        if (isLoggedIn) {
+            document.getElementById('nav-login').textContent = 'Dashboard';
+            document.getElementById('nav-login').href = 'status.html';
+            document.getElementById('nav-register').textContent = 'View Status';
+            document.getElementById('nav-register').href = 'status.html';
+            document.getElementById('nav-logout').classList.remove('hidden');
+        }
+
+        const logoutBtn = document.getElementById('nav-logout');
+        logoutBtn.addEventListener('click', function () {
+            if (auth && typeof auth.logout === 'function') {
+                auth.logout(false);
+            }
+            window.location.href = 'index.html';
+        });
+
         const form = document.getElementById('login-form');
         const errorBanner = document.getElementById('error-banner');
         const spinner = document.getElementById('spinner');

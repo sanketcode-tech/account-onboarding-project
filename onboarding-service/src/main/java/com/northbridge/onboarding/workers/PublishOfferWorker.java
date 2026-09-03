@@ -49,7 +49,7 @@ public class PublishOfferWorker {
         log.info("[PublishOfferWorker] published OfferReadyEvent for applicationId={} to topic offer.ready", applicationId);
 
         client.newCompleteCommand(job.getKey())
-                .variables(Map.of("offerPublished", true, "offerId", offerId, "offeredLimit", offeredLimit))
+                .variables(Map.of("offerPublished", true, "offerId", offerId, "offeredLimit", offeredLimit != null ? offeredLimit.doubleValue() : null))
                 .send()
                 .join();
     }
