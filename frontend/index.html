@@ -3,119 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Northbridge Bank - Onboarding</title>
+    <title>Northbridge Bank | Current Account</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-    <div class="navbar">
-        <div class="navbar-brand">Northbridge Bank</div>
-        <div class="navbar-menu">
-            <a href="#" id="nav-home">Home</a>
-            <a href="#" id="nav-apply">Apply</a>
-            <a href="#" id="nav-status">Status</a>
-            <button id="nav-logout" class="btn-logout" style="display: none;">Logout</button>
-            <a href="#" id="nav-login" onclick="showLoginPage()">Login</a>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="index.html" class="brand" aria-label="Northbridge Bank home">
+                <span class="brand-mark">N</span>
+                <span>Northbridge Bank</span>
+            </a>
+
+            <nav class="header-nav" aria-label="Main navigation">
+                <a href="index.html">Home</a>
+                <a href="status.html">Status</a>
+                <a id="nav-login" href="login.html" class="btn btn-link">Log In</a>
+                <a id="nav-register" href="register.html" class="btn btn-primary">Get Started</a>
+                <button id="nav-logout" type="button" class="btn btn-ghost hidden">Log Out</button>
+            </nav>
         </div>
-    </div>
+    </header>
 
-    <div id="app-container">
-        <!-- Pages will be injected here -->
-    </div>
-
-    <!-- Page Templates -->
-    <template id="login-page">
-        <div class="container">
-            <h1>Customer Login</h1>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" name="username" required>
+    <main>
+        <section class="hero">
+            <div class="container hero-grid">
+                <div class="hero-copy">
+                    <p class="eyebrow">Modern banking for everyday life</p>
+                    <h1>Open your current account online in minutes.</h1>
+                    <p class="hero-text">
+                        Apply from anywhere, get a personalised offer, sign digitally, and have your account activated without the paperwork.
+                    </p>
+                    <div class="cta-row">
+                        <a id="hero-cta" href="register.html" class="btn btn-primary">Get Started</a>
+                        <a href="login.html" class="btn btn-secondary">Log In</a>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
+
+                <div class="hero-card" aria-label="Account opening summary card">
+                    <div class="hero-card-top">
+                        <span class="card-label">Current account</span>
+                        <span class="status-badge badge-approved">Ready</span>
+                    </div>
+                    <h2>Simple from start to finish</h2>
+                    <ul class="feature-list">
+                        <li>Apply in a few minutes</li>
+                        <li>Receive an offer overview</li>
+                        <li>Sign digitally</li>
+                        <li>Account activation</li>
+                    </ul>
                 </div>
-                <button type="submit" class="btn">Login</button>
-            </form>
-        </div>
-    </template>
-
-    <template id="apply-page">
-        <div class="container">
-            <h1>Apply for Current Account</h1>
-            <form id="application-form">
-                <fieldset>
-                    <legend>Personal Details</legend>
-                    <div class="form-group">
-                        <label for="fullName">Full Name:</label>
-                        <input type="text" id="fullName" name="fullName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="dob">Date of Birth:</label>
-                        <input type="date" id="dob" name="dob" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="panNumber">PAN Number:</label>
-                        <input type="text" id="panNumber" name="panNumber" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="address">Address:</label>
-                        <textarea id="address" name="address" required></textarea>
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Employment Details</legend>
-                    <div class="form-group">
-                        <label for="occupation">Occupation:</label>
-                        <input type="text" id="occupation" name="occupation" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="annualIncome">Annual Income:</label>
-                        <input type="number" id="annualIncome" name="annualIncome" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="employerName">Employer Name:</label>
-                        <input type="text" id="employerName" name="employerName" required>
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>Account Preferences</legend>
-                    <div class="form-group">
-                        <label for="branch">Preferred Branch:</label>
-                        <input type="text" id="branch" name="branch" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="initialDeposit">Initial Deposit:</label>
-                        <input type="number" id="initialDeposit" name="initialDeposit" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="debitCard">
-                            <input type="checkbox" id="debitCard" name="debitCard">
-                            Require Debit Card
-                        </label>
-                    </div>
-                </fieldset>
-
-                <button type="submit" class="btn">Submit Application</button>
-            </form>
-        </div>
-    </template>
-
-    <template id="status-page">
-        <div class="container">
-            <h1>Application Status</h1>
-            <div id="status-content">
-                <p>Loading status...</p>
             </div>
-        </div>
-    </template>
+        </section>
 
-    <script src="js/api.js"></script>
+        <section class="section how-it-works">
+            <div class="container">
+                <div class="section-heading">
+                    <p class="eyebrow">How it works</p>
+                    <h2>Apply, review, sign, and activate</h2>
+                </div>
+
+                <div class="steps-grid">
+                    <article class="step-card">
+                        <div class="step-number">1</div>
+                        <h3>Apply</h3>
+                        <p>Submit your current account application online with your details.</p>
+                    </article>
+                    <article class="step-card">
+                        <div class="step-number">2</div>
+                        <h3>Get your offer</h3>
+                        <p>We review your application and share a personalised offer when ready.</p>
+                    </article>
+                    <article class="step-card">
+                        <div class="step-number">3</div>
+                        <h3>Sign digitally</h3>
+                        <p>Accept the offer and sign the document using the secure digital signing flow.</p>
+                    </article>
+                    <article class="step-card">
+                        <div class="step-number">4</div>
+                        <h3>Account activated</h3>
+                        <p>Your account is provisioned and becomes active once the final approval is complete.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <p>© 2026 Northbridge Bank</p>
+            <p>Current accounts • Secure onboarding • Customer support</p>
+        </div>
+    </footer>
+
     <script src="js/auth.js"></script>
-    <script src="js/app.js"></script>
+    <script>
+        (function () {
+            const auth = window.auth;
+            const isLoggedIn = auth && typeof auth.isLoggedIn === 'function' ? auth.isLoggedIn() : false;
+
+            const loginLink = document.getElementById('nav-login');
+            const registerLink = document.getElementById('nav-register');
+            const heroCta = document.getElementById('hero-cta');
+            const logoutBtn = document.getElementById('nav-logout');
+
+            if (isLoggedIn) {
+                loginLink.textContent = 'Dashboard';
+                loginLink.href = 'status.html';
+
+                registerLink.textContent = 'View Status';
+                registerLink.href = 'status.html';
+
+                heroCta.textContent = 'View Application';
+                heroCta.href = 'status.html';
+                logoutBtn.classList.remove('hidden');
+            }
+
+            logoutBtn.addEventListener('click', function () {
+                if (auth && typeof auth.logout === 'function') {
+                    auth.logout(false);
+                }
+                window.location.href = 'index.html';
+            });
+        })();
+    </script>
 </body>
 </html>
 

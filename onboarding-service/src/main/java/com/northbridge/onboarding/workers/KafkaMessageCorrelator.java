@@ -51,7 +51,8 @@ public class KafkaMessageCorrelator {
             if (event.getCustomerId() != null) vars.put("customerId", event.getCustomerId());
             vars.put("acceptedAt", event.getAcceptedAt().toString());
             if (event.getOfferedLimit() != null) {
-                vars.put("offeredLimit", event.getOfferedLimit());
+                // publish as a plain number to make it renderable in Camunda forms and frontend
+                vars.put("offeredLimit", event.getOfferedLimit().doubleValue());
             }
 
             camundaClient.newPublishMessageCommand()

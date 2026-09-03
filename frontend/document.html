@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Northbridge Bank — Document Signing</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="Northbridge Bank home">
+            <span class="brand-mark">N</span>
+            <span>Northbridge Bank</span>
+        </a>
+
+        <nav class="header-nav" aria-label="Main navigation">
+            <a href="index.html">Home</a>
+            <a href="status.html">Status</a>
+            <a id="nav-login" href="login.html" class="btn btn-link">Log In</a>
+            <a id="nav-register" href="register.html" class="btn btn-primary">Register</a>
+            <button id="nav-logout" type="button" class="btn btn-ghost hidden">Log Out</button>
+        </nav>
+    </div>
+</header>
+
+<div class="container" style="margin-top:2rem; margin-bottom:2rem;">
+    <h1>Document Signing</h1>
+    <div id="banner" class="alert alert-info hidden" role="status"></div>
+    <div id="document-panel"></div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    (function () {
+        if (!window.auth || !window.auth.getToken()) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const auth = window.auth;
+        const params = new URLSearchParams(window.location.search);
+        const applicationId = params.get('applicationId') || sessionStorage.getItem('currentApplicationId');
+        const panel = document.getElementById('document-panel');
+        const banner = document.getElementById('banner');
+
+        document.getElementById('nav-login').textContent = 'Dashboard';
+        document.getElementById('nav-login').href = 'status.html';
+        document.getElementById('nav-register').textContent = 'View Status';
+        document.getElementById('nav-register').href = 'status.html';
+        document.getElementById('nav-logout').classList.remove('hidden');
+        document.getElementById('nav-logout').addEventListener('click', function () {
+            auth.logout(false);
+            window.location.href = 'index.html';
+        });
+
+        function showBanner(message, type = 'info') {
+            banner.className = `alert alert-${type}`;
+            banner.textContent = message;
+            banner.classList.remove('hidden');
+        }
+
+        function hideBanner() {
+            banner.textContent = '';
+            banner.classList.add('hidden');
+        }
+
+        function badgeClass(status) {
+            const s = (status || '').toUpperCase();
+            if (s === 'PENDING') return 'badge-pending';
+            if (s === 'SIGNED') return 'badge-signed';
+            if (s === 'UPLOADED') return 'badge-uploaded';
+            return 'badge-info';
+        }
+
+        function renderProgress(docStatus) {
+            const statuses = ['PENDING', 'SIGNED', 'UPLOADED'];
+            const currentIndex = Math.max(0, statuses.indexOf((docStatus || 'PENDING').toUpperCase()));
+
+            return `
+                <div class="flex" style="gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0 1.5rem;">
+                    ${statuses.map((item, idx) => {
+                        const active = idx <= currentIndex;
+                        const cls = active ? 'badge-' + (item === 'PENDING' ? 'pending' : item === 'SIGNED' ? 'signed' : 'uploaded') : 'badge-info';
+                        return `<span class="status-badge ${cls}" style="opacity:${active ? 1 : 0.5}">${item}</span>`;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderDocument(doc) {
+            const status = doc && doc.status ? doc.status : 'PENDING';
+            const statusHtml = `<span class="status-badge ${badgeClass(status)}">${status}</span>`;
+            const signAction = status === 'PENDING' || !status ? `
+                <div class="card" style="padding:1rem; margin-top:1rem;">
+                    <h3>Sign Document</h3>
+                    <form id="sign-form">
+                        <div class="form-group">
+                            <label for="signerName">Signature name (optional)</label>
+                            <input id="signerName" type="text" placeholder="Jane Customer" />
+                        </div>
+                        <button class="btn btn-primary" type="submit">Sign Document</button>
+                    </form>
+                </div>
+            ` : '';
+            const uploadAction = status === 'SIGNED' ? `
+                <div class="card" style="padding:1rem; margin-top:1rem;">
+                    <h3>Upload Signed Evidence</h3>
+                    <form id="upload-form">
+                        <div class="form-group">
+                            <label for="signedFile">Choose signed document</label>
+                            <input id="signedFile" type="file" required />
+                        </div>
+                        <button class="btn btn-primary" type="submit">Upload Signed Document</button>
+                    </form>
+                </div>
+            ` : status === 'UPLOADED' ? `
+                <div class="card" style="padding:1rem; margin-top:1rem;">
+                    <h3>Signed document uploaded</h3>
+                    <p>Your signed evidence has been received and stored successfully.</p>
+                    <a class="btn btn-secondary" href="status.html?applicationId=${encodeURIComponent(applicationId)}">Back to status</a>
+                </div>
+            ` : '';
+
+            return `
+                <div class="card" style="padding:1.5rem; background:#fff; border-radius:12px; border:1px solid rgba(26,58,82,0.08); box-shadow:0 12px 30px rgba(26,58,82,0.06);">
+                    <div class="flex" style="justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                        <div>
+                            <p><strong>Application ID:</strong> ${applicationId}</p>
+                            <p><strong>Document ID:</strong> ${doc && doc.documentId ? doc.documentId : 'Pending'}</p>
+                        </div>
+                        <div>${statusHtml}</div>
+                    </div>
+
+                    ${renderProgress(status)}
+
+                    ${signAction}
+                    ${uploadAction}
+                </div>
+            `;
+        }
+
+        async function refreshDocument() {
+            hideBanner();
+            if (!applicationId) {
+                panel.innerHTML = '<div class="alert alert-error">No application selected. Please return to status and choose an application.</div>';
+                return;
+            }
+
+            try {
+                const res = await window.apiClient.get(window.apiClient.defaults.documents + '/' + encodeURIComponent(applicationId));
+                if (res.status === 200) {
+                    const doc = await res.json();
+                    panel.innerHTML = renderDocument(doc);
+
+                    const signForm = document.getElementById('sign-form');
+                    if (signForm) {
+                        signForm.addEventListener('submit', async function (event) {
+                            event.preventDefault();
+                            const signerName = document.getElementById('signerName').value.trim();
+                            try {
+                                const signRes = await window.apiClient.post(window.apiClient.defaults.documents + '/' + encodeURIComponent(applicationId) + '/sign', signerName ? { signerName } : {});
+                                if (signRes.ok) {
+                                    showBanner('Document signed successfully. Please upload the signed evidence next.', 'success');
+                                    await refreshDocument();
+                                } else {
+                                    let message = 'Failed to sign document';
+                                    try { const body = await signRes.json(); message = body.message || body.error || JSON.stringify(body); } catch (e) {}
+                                    showBanner(message, 'error');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                showBanner(err.message || 'Unable to sign document', 'error');
+                            }
+                        });
+                    }
+
+                    const uploadForm = document.getElementById('upload-form');
+                    if (uploadForm) {
+                        uploadForm.addEventListener('submit', async function (event) {
+                            event.preventDefault();
+                            const fileInput = document.getElementById('signedFile');
+                            if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+                                showBanner('Please choose a signed document file before uploading.', 'error');
+                                return;
+                            }
+
+                            const formData = new FormData();
+                            formData.append('file', fileInput.files[0]);
+
+                            try {
+                                const uploadRes = await window.apiClient.postForm(window.apiClient.defaults.documents + '/' + encodeURIComponent(applicationId) + '/upload', formData);
+                                if (uploadRes.ok) {
+                                    showBanner('Signed document uploaded successfully.', 'success');
+                                    await refreshDocument();
+                                } else {
+                                    let message = 'Failed to upload signed document';
+                                    try { const body = await uploadRes.json(); message = body.message || body.error || JSON.stringify(body); } catch (e) {}
+                                    showBanner(message, 'error');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                showBanner(err.message || 'Unable to upload signed document', 'error');
+                            }
+                        });
+                    }
+                } else if (res.status === 404) {
+                    panel.innerHTML = '<div class="alert alert-info">No document has been created for this application yet. Complete the offer acceptance flow first.</div>';
+                } else {
+                    const text = await res.text();
+                    panel.innerHTML = `<div class="alert alert-error">${text || 'Unable to load document state.'}</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                panel.innerHTML = '<div class="alert alert-error">Unable to load document state.</div>';
+            }
+        }
+
+        refreshDocument();
+    })();
+</script>
+</body>
+</html>

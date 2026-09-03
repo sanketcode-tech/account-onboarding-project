@@ -1,4 +1,4 @@
-// Central API client wrapper — attaches JWT and handles 401/403 by redirecting to login
+﻿// Central API client wrapper — attaches JWT and handles 401/403 by redirecting to login
 (function(window){
     const DEFAULTS = {
         auth: 'http://localhost:8081/api/auth',
@@ -6,6 +6,7 @@
         offers: 'http://localhost:8082/api/offers',
         documents: 'http://localhost:8084/api/documents',
         accounts: 'http://localhost:8083/api/accounts',
+        applications: 'http://localhost:8083/api/applications' // onboarding workflow/status endpoint
     };
 
     function getToken() {
@@ -16,7 +17,8 @@
         opts.headers = opts.headers || {};
         const token = getToken();
         if (token) {
-            opts.headers['Authorization'] = `Bearer ${token}`;
+            // include the JWT as a Bearer token
+            opts.headers['Authorization'] = 'Bearer ' + token;
         }
 
         // Ensure defaults

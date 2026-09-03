@@ -8,17 +8,24 @@
     <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-<div class="navbar">
-    <div class="navbar-brand">Northbridge Bank</div>
-    <div class="navbar-menu">
-        <a href="index.html">Home</a>
-        <a href="status.html">Status</a>
-        <a href="login.html" id="nav-login">Login</a>
-        <button id="nav-logout" class="btn-logout hidden">Logout</button>
-    </div>
-</div>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="Northbridge Bank home">
+            <span class="brand-mark">N</span>
+            <span>Northbridge Bank</span>
+        </a>
 
-<div class="container">
+        <nav class="header-nav" aria-label="Main navigation">
+            <a href="index.html">Home</a>
+            <a href="status.html">Status</a>
+            <a id="nav-login" href="login.html" class="btn btn-link">Log In</a>
+            <a id="nav-register" href="register.html" class="btn btn-primary">Register</a>
+            <button id="nav-logout" type="button" class="btn btn-ghost hidden">Log Out</button>
+        </nav>
+    </div>
+</header>
+
+<div class="container" style="margin-top:2rem; margin-bottom:2rem;">
     <h1>Apply for a Current Account</h1>
 
     <div id="error-banner" class="alert alert-error hidden" role="alert"></div>
@@ -96,9 +103,12 @@
         }
 
         // Update nav
-        document.getElementById('nav-login').classList.add('hidden');
+        document.getElementById('nav-login').textContent = 'Dashboard';
+        document.getElementById('nav-login').href = 'status.html';
+        document.getElementById('nav-register').textContent = 'View Status';
+        document.getElementById('nav-register').href = 'status.html';
         document.getElementById('nav-logout').classList.remove('hidden');
-        document.getElementById('nav-logout').addEventListener('click', () => { window.auth.logout(); });
+        document.getElementById('nav-logout').addEventListener('click', () => { window.auth.logout(false); window.location.href = 'index.html'; });
 
         const form = document.getElementById('application-form');
         const errorBanner = document.getElementById('error-banner');
@@ -144,8 +154,7 @@
                 email,
                 status: 'SUBMITTED',
                 payload: payload,
-                eventType: 'APPLICATION_SUBMITTED',
-                timestamp: new Date().toISOString()
+                eventType: 'APPLICATION_SUBMITTED'
             };
 
             try {
