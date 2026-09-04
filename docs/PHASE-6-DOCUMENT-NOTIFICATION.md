@@ -2,7 +2,7 @@
 
 ## Overview
 
-The document flow is implemented in `document-service`, which persists document metadata, validates ownership, and publishes `document.signed` after a file has been uploaded. The notification-service exists as a scaffold and does not yet implement actual delivery logic.
+The document flow is implemented in `document-service`, which persists document metadata, validates ownership, and publishes `document.signed` after a signed file has been uploaded. The current notification behavior is handled in the BPMN workflow itself through Camunda HTTP connector tasks rather than a dedicated `notification-service` consumer.
 
 ## Document-service summary
 
@@ -13,7 +13,7 @@ The document flow is implemented in `document-service`, which persists document 
 - Main responsibilities:
   - create document records from `document.requested`
   - manage signature confirmation
-  - ensure file upload happens after signing confirmation
+  - enforce upload only after signing confirmation
   - publish the `document.signed` event
 
 ## Key classes
@@ -76,16 +76,18 @@ The document flow is implemented in `document-service`, which persists document 
 
 `DocumentController.getFile()` allows the customer or officer to fetch the uploaded document.
 
-## Notification-service status
+## Notification flow status
 
-The `notification-service` exists as a Spring Boot app, but there is no working notification logic in the codebase at the moment.
+The dedicated `notification-service` remains scaffolded and is not the active email delivery implementation.
 
-- `NotificationServiceApplication` is present
-- No real email/SMS/consumer implementation is currently wired up
-- There are no notification topic consumers found in the code
+The current project uses the BPMN task service connectors instead:
 
-This means the project currently supports the document and onboarding flow, but not actual user notifications.
+- `Task_SendOfferEmail`
+- `Task_SendDeclineEmail`
+- `Task_SendActivatedEmail`
+
+These tasks use the Camunda `HttpJson` connector to `https://sandbox.api.mailtrap.io/api/send/4894420` with a bearer `MAILTRAP_API_TOKEN`. This is the real outbound email mechanism currently used to send onboarding updates to customers in the sandbox environment.
 
 ## Current status
 
-The document flow is implemented and is a key bridge between the onboarding process and the actual signed-file review step. Notification handling remains a known gap rather than a completed feature.
+The document flow is implemented and is the bridge between onboarding orchestration and signed evidence upload. Email notifications are now handled by the BPMN process via the Mailtrap HTTP connector, while the separate notification-service remains a future extension rather than an active delivery component.

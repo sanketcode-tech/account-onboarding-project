@@ -51,14 +51,16 @@ This repository implements a current-account onboarding platform composed of sma
     - KafkaMessageCorrelator — listens to offer.accepted and document.signed and publishes Camunda messages to correlate process instances
     - PublishDeclinedWorker — worker publishing application.declined
     - PublishActivatedWorker / ActivateAccountWorker — activate account and publish account.activated
+    - BPMN service tasks `Task_SendOfferEmail`, `Task_SendDeclineEmail`, `Task_SendActivatedEmail` — send lifecycle emails via Mailtrap HTTP connector
   - Kafka topics produced: offer.ready, document.requested, application.declined, account.activated
   - Kafka topics consumed: application.submitted, offer.accepted, document.signed
 
 - notification-service (port: not explicitly configured in code)
-  - Responsibility: event-driven notifications for lifecycle milestones (scaffold)
+  - Responsibility: scaffolded placeholder service; not the active email delivery mechanism
   - Key classes
     - NotificationServiceApplication — main Spring Boot app; currently a scaffold (no implemented consumers)
-  - Kafka: no active consumers/producers found in code (service is a placeholder)
+  - Current email delivery: handled directly in BPMN via Camunda HTTP connector service tasks (`Task_SendOfferEmail`, `Task_SendDeclinedEmail`, `Task_SendActivatedEmail`) to the Mailtrap sandbox API
+  - Kafka: no active consumers/producers found in code (service is not yet used for lifecycle notifications)
 
 - common-lib
   - Responsibility: shared DTOs/events and enums used across services
