@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # Spring Boot Application Configuration (Local Development)
 # ============================================================
 # Copy this to each service's src/main/resources/application-local.yml
@@ -55,15 +55,6 @@ spring:
       hibernate:
         format_sql: true
 
-  # ============================================================
-  # MongoDB Atlas Configuration (For services that need MongoDB)
-  # ============================================================
-  data:
-    mongodb:
-      uri: mongodb+srv://sanketdhake33_db_user:root1@clusterjobportal.awdffnm.mongodb.net/onboarding?retryWrites=true&w=majority&appName=ClusterJobPortal
-      # Connection pool settings for cloud
-      auto-index-creation: true
-
 # ============================================================
 # Camunda 8 SaaS (Zeebe) Configuration
 # ============================================================
@@ -104,7 +95,7 @@ logging:
 # CORS Configuration (Externalized)
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:63342}
     allowed-methods: GET,POST,PUT,DELETE,OPTIONS
     allowed-headers: "*"
     allow-credentials: true
@@ -126,4 +117,3 @@ management:
   endpoint:
     health:
       show-details: always
-

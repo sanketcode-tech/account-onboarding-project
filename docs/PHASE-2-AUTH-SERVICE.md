@@ -67,7 +67,7 @@ The `auth-service` handles customer identity, registration, login, and JWT valid
 - Session management is stateless
 - Spring Security is configured to permit only the auth endpoints publicly
 - `JwtAuthenticationFilter` is added before `UsernamePasswordAuthenticationFilter`
-- CORS defaults to `http://localhost:3000`
+- CORS defaults to `http://localhost:63342`
 
 ## Relevant dependencies and configuration
 

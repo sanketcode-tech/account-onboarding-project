@@ -1,4 +1,4 @@
-# Quick Start Script for Testing Kafka Producer/Consumer
+﻿# Quick Start Script for Testing Kafka Producer/Consumer
 # Run this from PowerShell in the onboarding directory
 
 Write-Host "================================" -ForegroundColor Green
@@ -42,9 +42,6 @@ Write-Host ""
 Write-Host "  # Kafka bootstrap servers (default: localhost:9092)" -ForegroundColor Gray
 Write-Host "`$env:SPRING_KAFKA_BOOTSTRAP_SERVERS = 'localhost:9092'" -ForegroundColor White
 Write-Host ""
-Write-Host "  # MongoDB Atlas URI" -ForegroundColor Gray
-Write-Host "`$env:MONGODB_URI = 'mongodb+srv://sanketdhake33_db_user:...'" -ForegroundColor White
-Write-Host ""
 Write-Host "  # Application port (default: 8082)" -ForegroundColor Gray
 Write-Host "`$env:SERVER_PORT_APPLICATION = '8082'" -ForegroundColor White
 Write-Host ""
@@ -54,9 +51,7 @@ Write-Host ""
 Write-Host "Run in a new PowerShell terminal:" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  cd $pwd\application-service" -ForegroundColor White
-Write-Host "  java -Dspring.kafka.bootstrap-servers=localhost:9092 ``" -ForegroundColor White
-Write-Host "       -Dspring.data.mongodb.uri=`"mongodb+srv://sanketdhake33_db_user:...`" ``" -ForegroundColor White
-Write-Host "       -jar target\application-service-0.0.1-SNAPSHOT.jar" -ForegroundColor White
+Write-Host "  java -Dspring.kafka.bootstrap-servers=localhost:9092 -jar target\application-service-0.0.1-SNAPSHOT.jar" -ForegroundColor White
 Write-Host ""
 
 Write-Host "[5] Start Kafka Consumer" -ForegroundColor Cyan
@@ -80,8 +75,8 @@ Write-Host "  # Send with custom values" -ForegroundColor Gray
 Write-Host "  curl -X POST `"http://localhost:8082/api/v1/applications/test-send?applicationId=APP-001&applicantName=John%20Doe`"" -ForegroundColor White
 Write-Host ""
 Write-Host "  # Submit application (JSON)" -ForegroundColor Gray
-Write-Host "  curl -X POST http://localhost:8082/api/v1/applications/submit ``" -ForegroundColor White
-Write-Host "       -H `"Content-Type: application/json`" ``" -ForegroundColor White
+Write-Host "  curl -X POST http://localhost:8082/api/v1/applications/submit `"" -ForegroundColor White
+Write-Host "       -H `"Content-Type: application/json`" `"" -ForegroundColor White
 Write-Host "       -d '{`"applicationId`":`"APP-2026-001`",`"applicantName`":`"John Doe`",`"email`":`"john.doe@example.com`",`"status`":`"SUBMITTED`",`"eventType`":`"APPLICATION_SUBMITTED`"}'" -ForegroundColor White
 Write-Host ""
 
@@ -90,4 +85,3 @@ Write-Host "Setup Complete!" -ForegroundColor Green
 Write-Host "================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "For detailed instructions, see: APPLICATION_KAFKA_TESTING_GUIDE.md" -ForegroundColor Cyan
-
