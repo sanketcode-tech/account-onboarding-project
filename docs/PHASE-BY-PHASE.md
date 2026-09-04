@@ -50,7 +50,7 @@ Covers how to run the services locally, verify Kafka topics, and exercise the on
 - `application-service` (port 8082): application persistence + offer handling + Kafka events.
 - `onboarding-service` (port 8083): Camunda orchestration + workers + Kafka correlation.
 - `document-service` (port 8084): document lifecycle, file storage, signing workflow.
-- `notification-service`: scaffold only; no functional notification logic implemented.
+- `notification-service`: scaffold only; email delivery is currently handled in BPMN via Camunda HTTP connector to Mailtrap, not by a dedicated service consumer.
 - `common-lib`: shared event classes and enums used across modules.
 
 ## Kafka topics in use today
