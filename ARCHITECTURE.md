@@ -68,7 +68,7 @@ This repository implements a current-account onboarding platform composed of sma
     - ApplicationStatus — enum of application lifecycle states
   - Kafka: none (library only)
 
-- frontend (port: 3000 in README/js)
+- frontend (port: 63342 in README/js)
   - Responsibility: customer-facing UI (static frontend in repo)
   - Notes: endpoints and ports referenced: auth -> 8081, application -> 8082, status/onboarding -> 8083, document -> 8084
 
@@ -172,14 +172,6 @@ Decline path
 - No explicit HTTP port configuration for notification-service found in code; other services have client defaults: auth 8081, application 8082, onboarding 8083 (env/example), document 8084 — these are defaults used in clients/forms, but per-service application.yml may override at runtime.
 
 Deleted files (scanned and removed):
-- docs/PHASE-BY-PHASE.md
-- docs/PHASE-8-E2E-TESTING.md
-- docs/PHASE-7-FRONTEND.md
-- docs/PHASE-6-DOCUMENT-NOTIFICATION.md
-- docs/PHASE-5-JOB-WORKERS-KAFKA.md
-- docs/PHASE-4-BPMN-CAMUNDA.md
-- docs/PHASE-3-APPLICATION-SERVICE.md
-- docs/PHASE-2-AUTH-SERVICE.md
 - frontend/README.md
 - document-service/README.md
 - notification-service/README.md
