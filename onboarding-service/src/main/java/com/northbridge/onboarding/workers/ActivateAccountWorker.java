@@ -49,6 +49,9 @@ public class ActivateAccountWorker {
             log.warn("Failed to parse offeredLimit from variables: {}", offeredObj);
         }
 
+        // Log the offeredLimit value for debugging — helps verify variable propagation from Camunda
+        log.info("ActivateAccountWorker: offeredObj={} parsedOfferedLimit={}", offeredObj, offeredLimit);
+
         Account account = new Account();
         account.setApplicationId(applicationId);
         account.setAccountId(accountId);

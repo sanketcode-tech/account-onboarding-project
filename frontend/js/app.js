@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Northbridge Bank Onboarding - Frontend Application
 // ============================================================
 
@@ -81,7 +81,7 @@ function showStatusPage() {
 
 async function handleLogin(event) {
     event.preventDefault();
-    const username = document.getElementById('username')?.value;
+    const username = document.getElementById('username')?.value || document.getElementById('email')?.value;
     const password = document.getElementById('password')?.value;
 
     if (!username || !password) {
@@ -90,16 +90,17 @@ async function handleLogin(event) {
     }
 
     try {
-        const response = await fetch(`${API_BASE.auth}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            jwtToken = data.jwtToken;
-            sessionStorage.setItem('jwtToken', jwtToken);
+        const res = await window.apiClient.post(window.apiClient.defaults.auth + '/login', { username, password });
+        if (res.ok) {
+            const data = await res.json();
+            const token = data.token || data.jwtToken;
+            if (!token) { alert('Login failed: no token'); return; }
+            if (window.auth && typeof window.auth.setToken === 'function') {
+                window.auth.setToken(token);
+            } else {
+                sessionStorage.setItem('jwtToken', token);
+            }
+            jwtToken = sessionStorage.getItem('jwtToken');
             updateNavigation();
             showApplyPage();
             console.log('✓ Login successful');
@@ -111,7 +112,6 @@ async function handleLogin(event) {
         alert('Login failed. Please try again.');
     }
 }
-
 async function handleApplicationSubmit(event) {
     event.preventDefault();
 
@@ -136,14 +136,7 @@ async function handleApplicationSubmit(event) {
     };
 
     try {
-        const response = await fetch(API_BASE.application, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${jwtToken}`,
-            },
-            body: JSON.stringify(applicationData),
-        });
+        const response = await window.apiClient.post(API_BASE.application, applicationData);
 
         if (response.ok) {
             const data = await response.json();
@@ -167,9 +160,7 @@ async function loadApplicationStatus() {
     }
 
     try {
-        const response = await fetch(`${API_BASE.status}/${currentApplicationId}`, {
-            headers: { 'Authorization': `Bearer ${jwtToken}` },
-        });
+        const response = await window.apiClient.get(`${API_BASE.status}/${currentApplicationId}`);
 
         if (response.ok) {
             const data = await response.json();
@@ -270,4 +261,8 @@ function showAlert(message, type = 'info') {
 }
 
 console.log('✓ Northbridge Bank Onboarding Frontend loaded');
+
+
+
+
 

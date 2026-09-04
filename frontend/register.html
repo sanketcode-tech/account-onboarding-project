@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -74,7 +74,7 @@
         }
 
         const logoutBtn = document.getElementById('nav-logout');
-        logoutBtn.addEventListener('click', function () {
+        if (logoutBtn) logoutBtn.addEventListener('click', function () {
             if (auth && typeof auth.logout === 'function') {
                 auth.logout(false);
             }
@@ -121,3 +121,4 @@
 </script>
 </body>
 </html>
+

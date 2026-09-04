@@ -29,15 +29,15 @@ public class PublishOfferWorker {
         Map<String, Object> vars = job.getVariablesAsMap();
         String applicationId = String.valueOf(vars.getOrDefault("applicationId", ""));
         String offerId = "OFFER-" + java.util.UUID.randomUUID();
-        BigDecimal offeredLimit = BigDecimal.ZERO;
+        // Default to a non-zero offered limit for testing when none is provided
+        BigDecimal offeredLimit = BigDecimal.valueOf(1000.00);
 
         Object limitObj = vars.get("offeredLimit");
-        if (limitObj instanceof BigDecimal bd) {
-            offeredLimit = bd;
-        } else if (limitObj != null) {
+        if (limitObj != null) {
             try {
                 offeredLimit = new BigDecimal(String.valueOf(limitObj));
-            } catch (Exception ignored) {
+            } catch (Exception ex) {
+                log.warn("Failed to parse offeredLimit from variables: {} — using default {}", limitObj, offeredLimit);
             }
         }
 

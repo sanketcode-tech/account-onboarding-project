@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -73,7 +73,7 @@
         }
 
         const logoutBtn = document.getElementById('nav-logout');
-        logoutBtn.addEventListener('click', function () {
+        if (logoutBtn) logoutBtn.addEventListener('click', function () {
             if (auth && typeof auth.logout === 'function') {
                 auth.logout(false);
             }
@@ -97,7 +97,7 @@
                 const res = await window.apiClient.post(window.apiClient.defaults.auth + '/login', { email, password });
                 if (res.ok) {
                     const data = await res.json();
-                    const token = data.token;
+                    const token = data.token || data.jwtToken;
                     if (!token) throw new Error('No token returned from auth service');
                     window.auth.setToken(token);
                     // redirect to application form (stage 3)
@@ -116,3 +116,4 @@
 </script>
 </body>
 </html>
+

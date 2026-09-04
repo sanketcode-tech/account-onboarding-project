@@ -26,10 +26,9 @@
 
         const res = await fetch(url, opts);
         if (res.status === 401 || res.status === 403) {
-            // centrally handle auth failures
+            // centrally handle auth failures: clear token and emit an event instead of forcing a navigation
             sessionStorage.removeItem('jwtToken');
-            // redirect to login page
-            window.location.href = 'index.html';
+            try { window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { status: res.status } })); } catch (e) { /* ignore */ }
             // throw so callers do not continue
             throw new Error('Unauthorized');
         }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -119,7 +119,7 @@
                 logoutBtn.classList.remove('hidden');
             }
 
-            logoutBtn.addEventListener('click', function () {
+            if (logoutBtn) logoutBtn.addEventListener('click', function () {
                 if (auth && typeof auth.logout === 'function') {
                     auth.logout(false);
                 }
@@ -129,4 +129,6 @@
     </script>
 </body>
 </html>
+
+
 

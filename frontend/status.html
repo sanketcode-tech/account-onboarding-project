@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -45,7 +45,7 @@
         document.getElementById('nav-register').textContent = 'View Status';
         document.getElementById('nav-register').href = 'status.html';
         document.getElementById('nav-logout').classList.remove('hidden');
-        document.getElementById('nav-logout').addEventListener('click', function () {
+        const __navLogout = document.getElementById('nav-logout'); if (__navLogout) __navLogout.addEventListener('click', function () {
             window.auth.logout(false);
             window.location.href = 'index.html';
         });
@@ -64,7 +64,20 @@
         }
 
         let pollHandle = null;
-        const POLL_INTERVAL = 5000;
+        const POLL_INTERVAL = 4000;
+        // Snapshot of last rendered state (stringified) to avoid unnecessary DOM updates
+        let lastState = null;
+        // Tracks the last status-stage signal so we only fetch a detail endpoint when the stage changes
+        let lastStatusSignal = null;
+        // Prevent overlapping polls
+        let pollingInFlight = false;
+
+        function stopPolling() {
+            if (pollHandle) {
+                clearInterval(pollHandle);
+                pollHandle = null;
+            }
+        }
 
         function showBanner(msg){ statusBanner.textContent = msg; statusBanner.classList.remove('hidden'); }
         function hideBanner(){ statusBanner.textContent = ''; statusBanner.classList.add('hidden'); }
@@ -144,84 +157,94 @@
         }
 
         async function poll() {
+            if (pollingInFlight) return;
+            pollingInFlight = true;
             hideBanner();
-            statusArea.innerHTML = '';
 
-            // First: check onboarding aggregated status (declined/activated) to override other views
             try {
                 const stRes = await window.apiClient.get(window.apiClient.defaults.applications + '/' + encodeURIComponent(applicationId) + '/status');
-                if (stRes.status === 200) {
-                    const st = await stRes.json();
-                    if ((st.overallStatus || '').toUpperCase() === 'DECLINED') {
+                if (stRes.status !== 200) {
+                    const message = 'Unable to fetch application status';
+                    const statusState = JSON.stringify({ type: 'status-error', message });
+                    if (statusState !== lastState) {
+                        lastState = statusState;
+                        statusArea.innerHTML = `<div class="alert alert-error">${message}</div>`;
+                    }
+                    return;
+                }
+
+                const status = await stRes.json();
+                const overall = (status.overallStatus || status.stage || status.currentStage || 'IN_PROGRESS').toUpperCase();
+                const stageSignal = overall === 'ACTIVE' ? 'ACTIVE' : (overall === 'ACTIVATED' ? 'ACTIVATED' : (overall === 'DECLINED' ? 'DECLINED' : 'IN_PROGRESS'));
+
+                if (stageSignal === 'DECLINED') {
+                    const newState = JSON.stringify({ type: 'terminal', overall: 'DECLINED', declineReason: status.declineReason });
+                    if (newState !== lastState) {
+                        lastState = newState;
                         statusArea.innerHTML = `
                             <div class="container">
                                 <h2>Application Declined</h2>
                                 <div class="card" style="padding:1rem; margin-top:1rem;">
                                     <p>Your application <strong>${applicationId}</strong> has been declined.</p>
-                                    <p><strong>Reason:</strong> ${st.declineReason || 'No reason provided'}</p>
+                                    <p><strong>Reason:</strong> ${status.declineReason || 'No reason provided'}</p>
                                 </div>
                                 <div style="margin-top:1rem;"><a class="btn" href="index.html">Return to home</a></div>
                             </div>
                         `;
-                        return; // show decline immediately
                     }
-                    if ((st.overallStatus || '').toUpperCase() === 'ACTIVATED') {
+                    stopPolling();
+                    return;
+                }
+
+                if (stageSignal === 'ACTIVATED' || stageSignal === 'ACTIVE') {
+                    const accRes = await window.apiClient.get(window.apiClient.defaults.accounts + '/' + encodeURIComponent(applicationId));
+                    const account = accRes.status === 200 ? await accRes.json() : {
+                        accountId: status.accountId,
+                        offeredLimit: status.offeredLimit,
+                        status: 'ACTIVE',
+                        activatedAt: status.activatedAt
+                    };
+
+                    const newState = JSON.stringify({ type: 'account', accountId: account.accountId, status: account.status, offeredLimit: account.offeredLimit, activatedAt: account.activatedAt });
+                    if (newState !== lastState) {
+                        lastState = newState;
                         statusArea.innerHTML = `
                             <div class="container">
                                 <h2>Account Activated</h2>
                                 <div class="card" style="padding:1rem; margin-top:1rem;">
-                                    <p><strong>Account ID:</strong> ${st.accountId}</p>
-                                    <p><strong>Offered Limit:</strong> ${formatLimit(st.offeredLimit)}</p>
-                                    <p><strong>Status:</strong> <span class="status-badge badge-approved">ACTIVE</span></p>
-                                    <p><strong>Activated at:</strong> ${st.activatedAt ? new Date(st.activatedAt).toLocaleString() : ''}</p>
+                                    <p><strong>Account ID:</strong> ${account.accountId}</p>
+                                    <p><strong>Offered Limit:</strong> ${formatLimit(account.offeredLimit)}</p>
+                                    <p><strong>Status:</strong> <span class="status-badge badge-approved">${account.status || 'ACTIVE'}</span></p>
+                                    <p><strong>Activated at:</strong> ${account.activatedAt ? new Date(account.activatedAt).toLocaleString() : ''}</p>
                                 </div>
                                 <div style="margin-top:1rem;"><a class="btn" href="index.html">Return to home</a></div>
                             </div>
                         `;
-                        return;
                     }
+                    stopPolling();
+                    return;
                 }
-            } catch (e) {
-                // ignore and fall back to individual checks below
-            }
 
-            // Priority: check if account already exists (account activated)
-            try {
-                const accRes = await window.apiClient.get(window.apiClient.defaults.accounts + '/' + encodeURIComponent(applicationId));
-                if (accRes.status === 200) {
-                    const account = await accRes.json();
-                    // Show activated view
-                    statusArea.innerHTML = `
-                        <div class="container">
-                            <h2>Account Activated</h2>
-                            <div class="card" style="padding:1rem; margin-top:1rem;">
-                                <p><strong>Account ID:</strong> ${account.accountId}</p>
-                                <p><strong>Offered Limit:</strong> ${formatLimit(account.offeredLimit)}</p>
-                                <p><strong>Status:</strong> <span class="status-badge badge-approved">${account.status || 'ACTIVE'}</span></p>
-                                <p><strong>Activated at:</strong> ${account.activatedAt ? new Date(account.activatedAt).toLocaleString() : ''}</p>
-                            </div>
-                            <div style="margin-top:1rem;"><a class="btn" href="index.html">Return to home</a></div>
-                        </div>
-                    `;
-                    return; // nothing more to poll once account is active
+                if (lastStatusSignal === stageSignal) {
+                    return;
                 }
-            } catch (e) {
-                // ignore — account not ready or network error; continue polling other endpoints
-            }
+                lastStatusSignal = stageSignal;
 
-            // Next: check offer state
-            const res = await fetchOfferOnce();
-            if (res.ok) {
-                const offer = res.data;
-                // if offer accepted, check document status to show signing/provisioning waiting states
-                if ((offer.status || '').toUpperCase() === 'ACCEPTED') {
-                    // fetch document status
-                    try {
+                const stageDetailStatus = await fetchOfferOnce();
+                if (stageDetailStatus.ok) {
+                    const offer = stageDetailStatus.data;
+                    if ((offer.status || '').toUpperCase() === 'ACCEPTED') {
                         const docRes = await window.apiClient.get(window.apiClient.defaults.documents + '/' + encodeURIComponent(applicationId));
+                        let docStatus = 'NONE';
                         if (docRes.status === 200) {
                             const doc = await docRes.json();
-                            const ds = (doc.status || '').toUpperCase();
-                            if (ds === 'PENDING') {
+                            docStatus = (doc.status || '').toUpperCase();
+                        }
+
+                        const newState = JSON.stringify({ type: 'offer', offerId: offer.offerId, offerStatus: (offer.status || '').toUpperCase(), docStatus });
+                        if (newState !== lastState) {
+                            lastState = newState;
+                            if (docStatus === 'PENDING') {
                                 statusArea.innerHTML = `
                                     <div class="container">
                                         <h2>Awaiting signature</h2>
@@ -231,7 +254,7 @@
                                 `;
                                 return;
                             }
-                            if (ds === 'SIGNED') {
+                            if (docStatus === 'SIGNED') {
                                 statusArea.innerHTML = `
                                     <div class="container">
                                         <h2>Awaiting signing ceremony review</h2>
@@ -241,7 +264,7 @@
                                 `;
                                 return;
                             }
-                            if (ds === 'UPLOADED') {
+                            if (docStatus === 'UPLOADED') {
                                 statusArea.innerHTML = `
                                     <div class="container">
                                         <h2>Awaiting provisioning approval</h2>
@@ -251,69 +274,74 @@
                                 `;
                                 return;
                             }
-                        } else if (docRes.status === 404) {
-                            // no document yet — prompt to sign
-                            statusArea.innerHTML = `
-                                <div class="container">
-                                    <h2>Offer accepted — awaiting signing</h2>
-                                    <p>Please sign the document to continue.</p>
-                                    <a class="btn" href="document.html?applicationId=${encodeURIComponent(applicationId)}">Go to signing</a>
-                                </div>
-                            `;
-                            return;
+                            statusArea.innerHTML = renderOffer(offer);
+                            document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(offer));
+                            document.getElementById('continue-signing')?.addEventListener('click', () => {
+                                window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
+                            });
                         }
-                    } catch (e) {
-                        // ignore and fall through
+                        return;
                     }
 
-                    // fallback: show offer accepted state and allow continue to signing
-                    statusArea.innerHTML = renderOffer(offer);
-                    document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(offer));
-                    document.getElementById('continue-signing')?.addEventListener('click', () => {
-                        window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
-                    });
+                    const offerState = JSON.stringify({ type: 'offer', offerId: offer.offerId, offerStatus: (offer.status || '').toUpperCase(), offeredLimit: offer.offeredLimit });
+                    if (offerState !== lastState) {
+                        lastState = offerState;
+                        statusArea.innerHTML = renderOffer(offer);
+                        document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(offer));
+                        document.getElementById('continue-signing')?.addEventListener('click', () => {
+                            window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
+                        });
+                    }
+
+                    const acceptBtn = document.getElementById('accept-offer');
+                    if (acceptBtn) {
+                        acceptBtn.addEventListener('click', async () => {
+                            acceptBtn.disabled = true; acceptBtn.textContent = 'Accepting...';
+                            try {
+                                const acceptRes = await window.apiClient.post(window.apiClient.defaults.offers + '/' + encodeURIComponent(applicationId) + '/accept', {});
+                                if (acceptRes.ok) {
+                                    const accepted = await acceptRes.json();
+                                    showBanner('Offer accepted successfully.');
+                                    lastState = null;
+                                    lastStatusSignal = null;
+                                    statusArea.innerHTML = renderOffer(accepted);
+                                    document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(accepted));
+                                    document.getElementById('continue-signing')?.addEventListener('click', () => {
+                                        window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
+                                    });
+                                } else {
+                                    let msg = 'Failed to accept offer';
+                                    try { const b = await acceptRes.json(); msg = b.error || b.message || JSON.stringify(b); } catch (e) {}
+                                    showBanner(msg);
+                                    acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                showBanner('Network error while accepting offer');
+                                acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
+                            }
+                        });
+                    }
                     return;
                 }
 
-                // offer not accepted yet — render offer or waiting state
-                statusArea.innerHTML = renderOffer(offer);
-                document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(offer));
-                document.getElementById('continue-signing')?.addEventListener('click', () => {
-                    window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
-                });
-                const acceptBtn = document.getElementById('accept-offer');
-                if (acceptBtn) {
-                    acceptBtn.addEventListener('click', async () => {
-                        acceptBtn.disabled = true; acceptBtn.textContent = 'Accepting...';
-                        try {
-                            const acceptRes = await window.apiClient.post(window.apiClient.defaults.offers + '/' + encodeURIComponent(applicationId) + '/accept', {});
-                            if (acceptRes.ok) {
-                                const accepted = await acceptRes.json();
-                                showBanner('Offer accepted successfully.');
-                                // re-render immediately with accepted state
-                                statusArea.innerHTML = renderOffer(accepted);
-                                document.getElementById('view-offer')?.addEventListener('click', () => showPrintableOffer(accepted));
-                                document.getElementById('continue-signing')?.addEventListener('click', () => {
-                                    window.location.href = 'document.html?applicationId=' + encodeURIComponent(applicationId);
-                                });
-                            } else {
-                                let msg = 'Failed to accept offer';
-                                try { const b = await acceptRes.json(); msg = b.error || b.message || JSON.stringify(b); } catch(e){}
-                                showBanner(msg);
-                                acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            showBanner('Network error while accepting offer');
-                            acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
-                        }
-                    });
+                if (stageDetailStatus.status === 404) {
+                    const waitingState = JSON.stringify({ type: 'waiting' });
+                    if (waitingState !== lastState) {
+                        lastState = waitingState;
+                        statusArea.innerHTML = renderWaitingForOffer();
+                    }
+                    return;
                 }
-            } else if (res.status === 404) {
-                statusArea.innerHTML = renderWaitingForOffer();
-            } else {
-                const message = res.body || (res.error && res.error.message) || 'Unexpected error';
-                statusArea.innerHTML = `<div class="alert alert-error">${message}</div>`;
+
+                const message = stageDetailStatus.body || (stageDetailStatus.error && stageDetailStatus.error.message) || 'Unexpected error';
+                const errState = JSON.stringify({ type: 'error', message });
+                if (errState !== lastState) {
+                    lastState = errState;
+                    statusArea.innerHTML = `<div class="alert alert-error">${message}</div>`;
+                }
+            } finally {
+                pollingInFlight = false;
             }
         }
 
@@ -360,3 +388,5 @@
 </script>
 </body>
 </html>
+
+

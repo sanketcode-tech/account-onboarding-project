@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -108,7 +108,7 @@
         document.getElementById('nav-register').textContent = 'View Status';
         document.getElementById('nav-register').href = 'status.html';
         document.getElementById('nav-logout').classList.remove('hidden');
-        document.getElementById('nav-logout').addEventListener('click', () => { window.auth.logout(false); window.location.href = 'index.html'; });
+        const __navLogout = document.getElementById('nav-logout'); if (__navLogout) __navLogout.addEventListener('click', () => { window.auth.logout(false); window.location.href = 'index.html'; });
 
         const form = document.getElementById('application-form');
         const errorBanner = document.getElementById('error-banner');
@@ -179,3 +179,4 @@
 </script>
 </body>
 </html>
+
