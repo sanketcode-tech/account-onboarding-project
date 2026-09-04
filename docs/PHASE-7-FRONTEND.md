@@ -47,7 +47,7 @@ The `frontend/js/app.js` code contains the application layer used to:
 
 ## CORS note
 
-Cross-origin browser access is configured around the `app.cors.allowed-origins` property in auth-service and other environment configuration. The expected browser origin is `http://localhost:3000`.
+Cross-origin browser access is configured around the `app.cors.allowed-origins` property in auth-service and other environment configuration. The expected browser origin is `http://localhost:63342`.
 
 ## Current status
 

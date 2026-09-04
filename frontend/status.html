@@ -244,12 +244,11 @@
                         const newState = JSON.stringify({ type: 'offer', offerId: offer.offerId, offerStatus: (offer.status || '').toUpperCase(), docStatus });
                         if (newState !== lastState) {
                             lastState = newState;
-                            if (docStatus === 'PENDING') {
+                            if (docStatus === 'PENDING' || docStatus === 'NONE') {
                                 statusArea.innerHTML = `
                                     <div class="container">
                                         <h2>Awaiting signature</h2>
                                         <p>Your offer is accepted. Please complete the signing ceremony. <a class="btn btn-primary" href="document.html?applicationId=${encodeURIComponent(applicationId)}">Go to signing</a></p>
-                                        ${renderWaitingForOffer()}
                                     </div>
                                 `;
                                 return;

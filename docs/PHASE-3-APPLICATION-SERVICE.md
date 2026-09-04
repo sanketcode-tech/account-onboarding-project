@@ -1,4 +1,4 @@
-# Phase 3 — Application service
+﻿# Phase 3 — Application service
 
 ## Overview
 
@@ -9,7 +9,7 @@ The `application-service` stores application data, exposes offer endpoints, and 
 - Module: `application-service`
 - Default port: `8082`
 - Main class: `ApplicationServiceApplication`
-- Persistence: H2 in-memory database + MongoDB configuration declared in `application.yml`
+- Persistence: H2 in-memory database
 
 ## Key classes
 
@@ -74,4 +74,3 @@ The project currently emits application events in code-level flows such as test 
 
 - Current code makes the application-service behave as the producer of the initial submission event and the coordinator of offer acceptance.
 - The project is not currently exposing a large application CRUD surface; instead it focuses on event production and offer processing.
-- MongoDB is declared in `application.yml`, but the main working flow around Kafka and offer persistence is still centered on the application/service event flow in code.

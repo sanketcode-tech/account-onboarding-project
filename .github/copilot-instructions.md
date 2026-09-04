@@ -22,8 +22,7 @@
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:<CURRENT_WSL_IP>:9092}
 ```
-- Also update `advertised.listeners` in Kafka's `config/server.properties` to match the
-  same IP (leave the `CONTROLLER` listener as `localhost` — never change that one).
+- Also update `advertised.listeners` in Kafka's `config/server.properties` to match the same IP (leave the `CONTROLLER` listener as `localhost` — never change that one).
 
 ## Corporate Network / TLS
 - This network uses Zscaler for SSL inspection. If any Java process throws
@@ -32,8 +31,7 @@
   certificate problem with the remote service (Camunda, Maven repos, etc.).
 - Do not suggest disabling TLS verification or switching to HTTP as a fix.
 - Correct fix: import the Zscaler root cert (already obtained, stored locally) into
-  the specific JDK's cacerts using `keytool -importcert`. Ask which JDK path is in use
-  before assuming — IntelliJ's run configuration JDK can differ from `JAVA_HOME`.
+  the specific JDK's cacerts using `keytool -importcert`. Ask which JDK path is in use before assuming — IntelliJ's run configuration JDK can differ from `JAVA_HOME`.
 
 ## Service Ports
 - auth-service: 8081
@@ -51,8 +49,7 @@
   if a new cross-service trigger is needed.
 - Exception: read-only lookups between services (e.g. document-service checking
   offer ownership via application-service) do use direct REST calls. When doing so,
-  the caller's JWT must be forwarded in the outgoing request's Authorization header —
-  never make a headerless internal service-to-service call to a JWT-protected endpoint.
+  the caller's JWT must be forwarded in the outgoing request's Authorization header — never make a headerless internal service-to-service call to a JWT-protected endpoint.
 
 ## Kafka Listener Pattern
 - `@KafkaListener` methods must take a raw `String` parameter (the JSON payload) and
@@ -137,3 +134,9 @@
 
 ## Git
 - Do not commit directly from copilot, I will commit manually after I tested.
+
+## Github Chat
+- Before any edit, read the exact current file section and use the exact live text as old_str
+- If No match found occurs, re-read the file and retry with the current content; do not reuse stale snippets from earlier edits
+- Prefer narrow unique replacements instead of large multi-line blocks
+- Always show me which files are added/updated/removed so I can decide whether to keep or not
