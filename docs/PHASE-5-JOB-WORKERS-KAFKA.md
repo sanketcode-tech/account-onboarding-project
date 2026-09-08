@@ -24,6 +24,7 @@ The onboarding service contains the system's task workers and event listeners. T
 
 - Type: `publish-offer`
 - Responsibility: creates `OfferReadyEvent` and sends it to Kafka topic `offer.ready`
+- Reads `offeredLimit` from process variables (typically produced by the DMN decision `validateCurrentAccountApplication` and/or mapped into `offeredLimit` via the business rule task ioMapping)
 - Completes the job with `offerPublished`, `offerId`, and `offeredLimit`
 
 ### `PublishDocumentWorker`

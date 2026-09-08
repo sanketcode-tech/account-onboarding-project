@@ -21,16 +21,19 @@ public class ProcessDeployer {
     private final boolean deployEnabled;
     private final String bpmnPath;
     private final String formPaths;
+    private final String dmnPaths;
 
     public ProcessDeployer(
             @Qualifier("camundaClient") Optional<CamundaClient> camundaClient,
             @Value("${process.deployer.enabled:false}") boolean deployEnabled,
             @Value("${bpmn.resource.path:/bpmn/current-account-onboarding.bpmn}") String bpmnPath,
-            @Value("${forms.resource.paths:/forms/signing-ceremony-form.form,/forms/provisioning-approval-form.form}") String formPaths) {
+            @Value("${forms.resource.paths:/forms/signing-ceremony-form.form,/forms/provisioning-approval-form.form}") String formPaths,
+            @Value("${dmn.resource.paths:/dmn/validate-eligibility.dmn}") String dmnPaths) {
         this.camundaClient = camundaClient;
         this.deployEnabled = deployEnabled;
         this.bpmnPath = bpmnPath;
         this.formPaths = formPaths;
+        this.dmnPaths = dmnPaths;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -62,10 +65,25 @@ public class ProcessDeployer {
                 }
             }
 
+            if (dmnPaths != null && !dmnPaths.isBlank()) {
+                for (String p : dmnPaths.split(",")) {
+                    String path = p.trim();
+                    if (!path.isEmpty()) {
+                        String cp = path.startsWith("/") ? path.substring(1) : path;
+                        try {
+                            deployCmd.addResourceFromClasspath(cp);
+                        } catch (Exception rex) {
+                            // Don't fail the entire deployment if a DMN is missing or invalid; log and continue
+                            log.warn("Skipping DMN resource '{}' during deployment: {}", cp, rex.getMessage());
+                        }
+                    }
+                }
+            }
+
             deployCmd.send().join();
-            log.info("Successfully deployed resources: BPMN '{}' and forms: {}", classpathResource, formPaths);
+            log.info("Successfully deployed resources: BPMN '{}' forms: {} and DMN(s): {}", classpathResource, formPaths, dmnPaths);
         } catch (Exception ex) {
-            log.error("Failed to deploy resources to Camunda 8 SaaS. BPMN: {}, forms: {}", classpathResource, formPaths, ex);
+            log.error("Failed to deploy resources to Camunda 8 SaaS. BPMN: {}, forms: {}, dmns: {}", classpathResource, formPaths, dmnPaths, ex);
         }
     }
 }

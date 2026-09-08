@@ -5,6 +5,8 @@ import io.camunda.client.CamundaClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import java.time.LocalDate;
+import java.time.Period;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -66,6 +68,56 @@ public class ApplicationSubmittedListener {
             // pass applicant details through to BPMN workers
             variables.put("applicantName", payload.getOrDefault("applicantName", ""));
             variables.put("email", payload.getOrDefault("email", ""));
+
+            // Try to extract richer payload which may be provided either inline as 'payload' or as serialized JSON in 'payloadRef'
+            Map<String, Object> innerPayload = null;
+            Object payloadObj = payload.get("payload");
+            if (payloadObj instanceof Map) {
+                innerPayload = (Map<String, Object>) payloadObj;
+            } else if (payload.get("payloadRef") instanceof String) {
+                String payloadRefJson = String.valueOf(payload.get("payloadRef"));
+                try {
+                    innerPayload = objectMapper.readValue(payloadRefJson, Map.class);
+                } catch (Exception e) {
+                    log.warn("Failed to parse payloadRef JSON for applicationId={}: {}", applicationId, e.getMessage());
+                }
+            }
+
+            if (innerPayload != null) {
+                try {
+                    // personalDetails.dob -> compute age (years)
+                    if (innerPayload.get("personalDetails") instanceof Map) {
+                        Map<?, ?> pd = (Map<?, ?>) innerPayload.get("personalDetails");
+                        Object dobObj = pd.get("dob");
+                        if (dobObj != null) {
+                            String dobStr = String.valueOf(dobObj);
+                            try {
+                                LocalDate dobDate = LocalDate.parse(dobStr);
+                                int age = Period.between(dobDate, LocalDate.now()).getYears();
+                                variables.put("age", age);
+                            } catch (Exception ignore) {
+                                log.debug("Could not parse dob='{}' into LocalDate for applicationId={}", dobStr, applicationId);
+                            }
+                        }
+                    }
+
+                    // employmentDetails -> annualIncome, creditRating, yearsOfExperience
+                    if (innerPayload.get("employmentDetails") instanceof Map) {
+                        Map<?, ?> ed = (Map<?, ?>) innerPayload.get("employmentDetails");
+                        if (ed.containsKey("annualIncome")) {
+                            variables.put("annualIncome", ed.get("annualIncome"));
+                        }
+                        if (ed.containsKey("creditRating")) {
+                            variables.put("creditRating", ed.get("creditRating"));
+                        }
+                        if (ed.containsKey("yearsOfExperience")) {
+                            variables.put("yearsOfExperience", ed.get("yearsOfExperience"));
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to extract nested payload fields for applicationId={}: {}", applicationId, e.getMessage());
+                }
+            }
 
             var response = camundaClient.newCreateInstanceCommand()
                     .bpmnProcessId("current-account-onboarding")

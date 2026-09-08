@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/" 
+             id="definitions" 
+             name="definitions" 
+             namespace="http://camunda.org/schema/1.0/dmn">
+  <decision id="validateCurrentAccountApplication" name="validateCurrentAccountApplication">
+    <decisionTable id="decisionTable_accountValidation" hitPolicy="FIRST">
+      <!-- Inputs -->
+      <input id="input_age" label="Age">
+        <inputExpression id="inputExpr_age" typeRef="number">
+          <text>age</text>
+        </inputExpression>
+      </input>
+      <input id="input_creditRating" label="Credit Rating">
+        <inputExpression id="inputExpr_creditRating" typeRef="string">
+          <text>creditRating</text>
+        </inputExpression>
+      </input>
+      <input id="input_annualIncome" label="Annual Income">
+        <inputExpression id="inputExpr_annualIncome" typeRef="number">
+          <text>annualIncome</text>
+        </inputExpression>
+      </input>
+      <input id="input_yearsOfExperience" label="Years of Experience">
+        <inputExpression id="inputExpr_yearsOfExperience" typeRef="number">
+          <text>yearsOfExperience</text>
+        </inputExpression>
+      </input>
+
+      <!-- Outputs -->
+      <output id="output_eligibilityStatus" label="Eligibility Status" name="eligibilityStatus" typeRef="string" />
+      <output id="output_accountLimitTier" label="Account Limit Tier" name="accountLimitTier" typeRef="string" />
+      <output id="output_offeredLimit" label="Offered Limit" name="offeredLimit" typeRef="number" />
+      <output id="output_declineReason" label="Decline Reason" name="declineReason" typeRef="string" />
+
+      <!-- Rule 1: age < 18 -->
+      <rule id="rule_age_ineligible">
+        <description>Applicant is underage</description>
+        <inputEntry id="inputEntry_1_1">
+          <text>&lt; 18</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_1_2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_1_3">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_1_4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_1_1">
+          <text>"REJECTED"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_1_2">
+          <text>"None"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_1_3">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_1_4">
+          <text>"AGE_INELIGIBLE"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Rule 2: creditRating = "Bad" -->
+      <rule id="rule_credit_rejected">
+        <description>Applicant has poor credit rating</description>
+        <inputEntry id="inputEntry_2_1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_2_2">
+          <text>"Bad"</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_2_3">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_2_4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_2_1">
+          <text>"REJECTED"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_2_2">
+          <text>"None"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_2_3">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_2_4">
+          <text>"CREDIT_RATING_REJECTED"</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Rule 3: High tier approval -->
+      <rule id="rule_tier_high">
+        <description>High experience and annual income qualify for high limit</description>
+        <inputEntry id="inputEntry_3_1">
+          <text>&gt;= 18</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_3_2">
+          <text>"Good"</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_3_3">
+          <text>&gt; 600000</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_3_4">
+          <text>&gt; 5</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_3_1">
+          <text>"APPROVED"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_3_2">
+          <text>"High"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_3_3">
+          <text>100000</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_3_4">
+          <text>null</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Rule 4: Standard tier approval -->
+      <rule id="rule_tier_standard">
+        <description>Standard criteria met</description>
+        <inputEntry id="inputEntry_4_1">
+          <text>&gt;= 18</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_4_2">
+          <text>"Good", "Mixed"</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_4_3">
+          <text>&gt;= 240000</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_4_4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_4_1">
+          <text>"APPROVED"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_4_2">
+          <text>"Standard"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_4_3">
+          <text>50000</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_4_4">
+          <text>null</text>
+        </outputEntry>
+      </rule>
+
+      <!-- Rule 5: Fallback decline -->
+      <rule id="rule_fallback_declined">
+        <description>All other cases declined</description>
+        <inputEntry id="inputEntry_5_1">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_5_2">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_5_3">
+          <text>-</text>
+        </inputEntry>
+        <inputEntry id="inputEntry_5_4">
+          <text>-</text>
+        </inputEntry>
+        <outputEntry id="outputEntry_5_1">
+          <text>"REJECTED"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_5_2">
+          <text>"None"</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_5_3">
+          <text>0</text>
+        </outputEntry>
+        <outputEntry id="outputEntry_5_4">
+          <text>"ELIGIBILITY_CRITERIA_NOT_MET"</text>
+        </outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>
