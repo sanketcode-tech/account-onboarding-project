@@ -67,6 +67,18 @@
                 <label for="employerName">Employer name *</label>
                 <input id="employerName" name="employerName" type="text" required />
             </div>
+            <div class="form-group">
+                <label for="creditRating">Credit rating</label>
+                <select id="creditRating" name="creditRating">
+                    <option value="Good">Good</option>
+                    <option value="Mixed">Mixed</option>
+                    <option value="Bad">Bad</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="yearsOfExperience">Years of experience</label>
+                <input id="yearsOfExperience" name="yearsOfExperience" type="number" min="0" />
+            </div>
         </fieldset>
 
         <fieldset>
@@ -139,8 +151,11 @@
                 employmentDetails: {
                     occupation: document.getElementById('occupation').value.trim(),
                     annualIncome: parseFloat(document.getElementById('annualIncome').value || 0),
-                    employerName: document.getElementById('employerName').value.trim()
+                    employerName: document.getElementById('employerName').value.trim(),
+                    creditRating: document.getElementById('creditRating') ? document.getElementById('creditRating').value : null,
+                    yearsOfExperience: parseInt(document.getElementById('yearsOfExperience').value || 0)
                 },
+
                 preferences: {
                     branch: document.getElementById('branch').value.trim(),
                     initialDeposit: parseFloat(document.getElementById('initialDeposit').value || 0),

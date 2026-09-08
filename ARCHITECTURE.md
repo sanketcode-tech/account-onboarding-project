@@ -41,15 +41,17 @@ This repository implements a current-account onboarding platform composed of sma
   - Kafka topics consumed: document.requested
 
 - onboarding-service (port: referenced as 8083 in .env.example)
-  - Responsibility: BPMN orchestration (current-account-onboarding.bpmn), Zeebe workers, correlating Kafka messages to Camunda messages
+  - Responsibility: BPMN orchestration (current-account-onboarding.bpmn), Zeebe workers, correlating Kafka messages to Camunda messages. Also hosts the Business Rule Task that calls a DMN decision for eligibility checks.
   - Key classes
     - OnboardingServiceApplication — main Spring Boot app
-    - ApplicationSubmittedListener — listens to application.submitted and starts the BPMN process
+    - ProcessDeployer — deploys BPMN, forms and DMN resources (e.g., `/dmn/validate-eligibility.dmn`) to Camunda on startup when enabled
+    - ApplicationSubmittedListener — listens to application.submitted and starts the BPMN process; extracts additional start variables (age derived from personalDetails.dob, annualIncome, creditRating, yearsOfExperience) and passes them to the process
     - ValidateApplicationWorker — Camunda worker validating application fields
-    - PublishOfferWorker — worker publishing OfferReadyEvent to topic offer.ready
+    - Activity_EvaluateEligibility (Business Rule Task) — calls DMN `validateCurrentAccountApplication` (validate-eligibility.dmn) and exposes outputs such as eligibilityStatus, accountLimitTier, offeredLimit, declineReason to the process (via ioMapping)
+    - PublishOfferWorker — worker publishing OfferReadyEvent to topic offer.ready (reads offeredLimit from process variables)
     - PublishDocumentWorker — worker publishing DocumentSigningRequestEvent to topic document.requested
     - KafkaMessageCorrelator — listens to offer.accepted and document.signed and publishes Camunda messages to correlate process instances
-    - PublishDeclinedWorker — worker publishing application.declined
+    - PublishDeclinedWorker — worker publishing application.declined (derives declineReason from DMN outputs or other decision variables)
     - PublishActivatedWorker / ActivateAccountWorker — activate account and publish account.activated
     - BPMN service tasks `Task_SendOfferEmail`, `Task_SendDeclineEmail`, `Task_SendActivatedEmail` — send lifecycle emails via Mailtrap HTTP connector
   - Kafka topics produced: offer.ready, document.requested, application.declined, account.activated
@@ -90,6 +92,13 @@ This repository implements a current-account onboarding platform composed of sma
    - Service: onboarding-service (ValidateApplicationWorker)
    - Topic: none
    - BPMN: serviceTask Task_ValidateApplication; validation failure leads to decline flow (BPMN error handling / decline path)
+
+4. Evaluate eligibility (Business Rule / DMN)
+   - Service: onboarding-service (Business Rule Task Activity_EvaluateEligibility)
+   - Decision: DMN `validateCurrentAccountApplication` (file: `onboarding-service/src/main/resources/dmn/validate-eligibility.dmn`)
+   - Inputs: age (computed from personalDetails.dob), creditRating, annualIncome, yearsOfExperience
+   - Outputs: eligibilityStatus (APPROVED/REJECTED), accountLimitTier (High/Standard/None), offeredLimit (number), declineReason (string)
+   - BPMN: BusinessRuleTask calls the DMN and maps result fields to top-level process variables (ioMapping) so subsequent gateways and workers can use them directly (e.g., eligibilityStatus, offeredLimit, declineReason)
 
 4. Offer published
    - Service: onboarding-service (PublishOfferWorker) — serviceTask Task_PublishOffer
@@ -137,7 +146,8 @@ This repository implements a current-account onboarding platform composed of sma
     - BPMN: endEvent Event_Success
 
 Decline path
-- Any validation failure, timeouts (Offer Expired, Document Signing Expired), or explicit user rejection is funneled to Task_PublishDeclined which publishes application.declined and ends at Event_Declined.
+- Any validation failure, timeouts (Offer Expired, Document Signing Expired), DMN-decision REJECTED outcomes, or explicit user rejection is funneled to Task_PublishDeclined which publishes application.declined and ends at Event_Declined.
+- The DMN `validateCurrentAccountApplication` may populate a `declineReason` output which is mapped into the process (declineReason) and used by the decline worker/email tasks.
 - Service: onboarding-service (PublishDeclinedWorker)
 - Topic: application.declined
 
@@ -172,19 +182,5 @@ Decline path
 - application.declined and account.activated topics are published but have no consumers in the current codebase — downstream handling (notification, archival, downstream systems) is not implemented.
 - Frontend and module README/docs were removed because they were outdated. The frontend references ports (3000 and backends 8081..8084) in code; verify environment before running.
 - No explicit HTTP port configuration for notification-service found in code; other services have client defaults: auth 8081, application 8082, onboarding 8083 (env/example), document 8084 — these are defaults used in clients/forms, but per-service application.yml may override at runtime.
-
-Deleted files (scanned and removed):
-- frontend/README.md
-- document-service/README.md
-- notification-service/README.md
-- application-service/README.md
-- .github/copilot-instructions.md
-- auth-service/README.md
-- common-lib/README.md
-- onboarding-service/README.md
-
-Notes / next steps
-- If any of the removed docs must be preserved for audit, revert from VCS. The new ARCHITECTURE.md is authoritative and derived from live code only.
-- Recommend adding simple consumers for application.declined and account.activated (notification-service) or hook them into monitoring/archival.
 
 (End of ARCHITECTURE.md)

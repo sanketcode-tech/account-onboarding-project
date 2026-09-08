@@ -9,6 +9,15 @@ The orchestration layer uses Camunda 8 and a BPMN process definition called `cur
 - File: `onboarding-service/src/main/resources/bpmn/current-account-onboarding.bpmn`
 - Process ID: `current-account-onboarding`
 
+## DMN decision: eligibility
+
+- File: `onboarding-service/src/main/resources/dmn/validate-eligibility.dmn`
+- Decision ID: `validateCurrentAccountApplication`
+- Purpose: Evaluate applicant eligibility and compute offer parameters (eligibilityStatus, accountLimitTier, offeredLimit, declineReason)
+- Inputs: age, creditRating, annualIncome, yearsOfExperience
+- Outputs: eligibilityStatus (string), accountLimitTier (string), offeredLimit (number), declineReason (string)
+- The BPMN's Business Rule Task `Activity_EvaluateEligibility` calls this decision and maps outputs into top-level process variables via `zeebe:ioMapping` so the rest of the process (exclusive gateways, service workers) can reference `eligibilityStatus`, `offeredLimit` and `declineReason` directly.
+
 ## Main process structure
 
 ### Happy path

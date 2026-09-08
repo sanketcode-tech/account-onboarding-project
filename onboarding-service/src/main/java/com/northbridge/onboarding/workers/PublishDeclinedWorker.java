@@ -9,6 +9,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Camunda worker that publishes ApplicationDeclinedEvent when an application is declined.
@@ -30,10 +31,36 @@ public class PublishDeclinedWorker {
 
                 // Determine declineReason: prefer explicit variable, otherwise derive from signing/provisioning decisions
         Object declineObj = vars.get("declineReason");
-        String declineReason;
+        String declineReason = null;
+
+                // Prefer explicit declineReason variable if present and non-null
         if (declineObj instanceof String && !((String) declineObj).isBlank() && !"null".equalsIgnoreCase((String) declineObj)) {
             declineReason = (String) declineObj;
-        } else {
+        }
+
+        // If not present, try to extract from DMN result object eligibilityResult (eligibilityResult.declineReason)
+        if (declineReason == null) {
+            Object eligibilityObj = vars.get("eligibilityResult");
+            if (eligibilityObj instanceof Map) {
+                Object nested = ((Map<?, ?>) eligibilityObj).get("declineReason");
+                if (nested instanceof String && !((String) nested).isBlank() && !"null".equalsIgnoreCase((String) nested)) {
+                    declineReason = (String) nested;
+                }
+            } else if (eligibilityObj instanceof String) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    Map<?, ?> parsed = mapper.readValue(String.valueOf(eligibilityObj), Map.class);
+                    Object nested = parsed.get("declineReason");
+                    if (nested instanceof String && !((String) nested).isBlank() && !"null".equalsIgnoreCase((String) nested)) {
+                        declineReason = (String) nested;
+                    }
+                } catch (Exception ex) {
+                    log.debug("Failed to parse eligibilityResult JSON for applicationId={}: {}", applicationId, ex.getMessage());
+                }
+            }
+        }
+
+        if (declineReason == null) {
             Object signingDecisionObj = vars.get("signingDecision");
             Object signingNotesObj = vars.get("signingNotes");
             Object provisioningDecisionObj = vars.get("provisioningDecision");
