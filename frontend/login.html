@@ -100,8 +100,9 @@
                     const token = data.token || data.jwtToken;
                     if (!token) throw new Error('No token returned from auth service');
                     window.auth.setToken(token);
-                    // redirect to application form (stage 3)
-                    window.location.href = 'apply.html';
+                    sessionStorage.removeItem('currentApplicationId');
+                    // redirect to current account landing page after login
+                    window.location.href = 'status.html';
                 } else {
                     let msg = 'Login failed';
                     try { const body = await res.json(); msg = body.message || JSON.stringify(body); } catch(e){}

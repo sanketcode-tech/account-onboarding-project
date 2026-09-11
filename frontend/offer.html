@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Northbridge Bank — Offer</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="Northbridge Bank home">
+            <span class="brand-mark">N</span>
+            <span>Northbridge Bank</span>
+        </a>
+
+        <nav class="header-nav" aria-label="Main navigation">
+            <a href="index.html">Home</a>
+            <a href="status.html">Status</a>
+            <a id="nav-login" href="login.html" class="btn btn-link">Log In</a>
+            <a id="nav-register" href="register.html" class="btn btn-primary">Register</a>
+            <button id="nav-logout" type="button" class="btn btn-ghost hidden">Log Out</button>
+        </nav>
+    </div>
+</header>
+
+<div class="container" style="margin-top:2rem; margin-bottom:2rem; max-width:720px;">
+    <h1>Offer reserved</h1>
+
+    <div class="card" style="padding:1rem; margin-top:1rem;">
+        <h3>Overview</h3>
+        <p>The following will give you all the necessary documentation and information about the offer. This includes the pricing information and terms and condition.</p>
+        <p><strong>If you have any queries about the offer, please contact your bank manager.</strong></p>
+
+        <hr style="margin:1rem 0;" />
+
+        <p><strong>Application / Customer number:</strong> <span id="app-id">-</span></p>
+        <p><strong>Offer ID:</strong> <span id="offer-id">-</span></p>
+        <p><strong>Offer limit:</strong> <span id="offer-limit">-</span></p>
+
+        <div style="margin-top:1rem;"><button id="done-btn" class="btn">Done</button></div>
+
+        <div id="post-actions" style="margin-top:1rem; display:none; gap:0.5rem;">
+            <a id="view-offer-btn" class="btn btn-secondary" href="#">View Offer</a>
+            <button id="accept-offer-btn" class="btn btn-primary">Accept Offer</button>
+        </div>
+
+        <div id="offer-banner" class="alert alert-success hidden" style="margin-top:1rem;"></div>
+    </div>
+
+    <!-- Congratulations view (hidden until offer accepted and docs signed/uploaded) -->
+    <div id="congrats" class="congrats hidden" style="margin-top:2rem; max-width:840px;">
+        <h1 class="congrats-title">Congratulations!</h1>
+        <p class="congrats-sub">Awaiting provisioning approval</p>
+
+        <p class="congrats-copy">Thanks for accepting your offer. We'll be in touch if we need any further information or documentation from you or the associated persons. The application is currently awaiting provisioning approval. Once all authorised parties have accepted the offer your account will be activated within the business day.</p>
+
+        <p class="congrats-ref">Application reference: <span id="congrats-app-id">-</span></p>
+
+        <h3 style="margin-top:1.5rem;">What happens next?</h3>
+        <div style="display:flex; gap:2rem; margin-top:1rem; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px;">
+                <strong>Deposit books have been ordered</strong>
+                <p class="muted">You need to collect your deposit and cheque books from the branch.</p>
+            </div>
+            <div style="flex:1; min-width:200px;">
+                <strong>Proof of account letter will be emailed</strong>
+                <p class="muted">Once the account(s) is activated, we will send you an email with the details of the account(s).</p>
+            </div>
+        </div>
+
+        <p style="margin-top:1.5rem;" class="muted">For any questions, please contact your business manager.</p>
+        <div style="margin-top:1rem; display:flex; gap:0.75rem;">
+            <a id="congrats-view-offer" class="btn btn-secondary" href="#">View Offer</a>
+            <a id="congrats-status" class="btn" href="#">Done</a>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    (function(){
+        if (!window.auth || !window.auth.getToken()) { window.location.href = 'login.html'; return; }
+
+        document.getElementById('nav-login').textContent = 'Dashboard';
+        document.getElementById('nav-login').href = 'status.html';
+        document.getElementById('nav-register').textContent = 'View Status';
+        document.getElementById('nav-register').href = 'status.html';
+        document.getElementById('nav-logout').classList.remove('hidden');
+        const __navLogout = document.getElementById('nav-logout'); if (__navLogout) __navLogout.addEventListener('click', () => { window.auth.logout(false); window.location.href = 'index.html'; });
+
+        const params = new URLSearchParams(window.location.search);
+        const applicationId = params.get('applicationId') || sessionStorage.getItem('currentApplicationId') || '';
+        const offerId = params.get('offerId') || sessionStorage.getItem('currentOfferId') || '';
+        const offerLimit = params.get('offerLimit') || sessionStorage.getItem('currentOfferLimit') || '';
+
+        const appEl = document.getElementById('app-id'); if (appEl) appEl.textContent = applicationId || '-';
+        const offerEl = document.getElementById('offer-id'); if (offerEl) offerEl.textContent = offerId || '-';
+        const limitEl = document.getElementById('offer-limit'); if (limitEl) limitEl.textContent = offerLimit || '-';
+
+        if (offerId) { sessionStorage.setItem('currentOfferId', offerId); }
+        if (offerLimit) { sessionStorage.setItem('currentOfferLimit', offerLimit); }
+
+        const doneBtn = document.getElementById('done-btn');
+        const postActions = document.getElementById('post-actions');
+        const viewOfferBtn = document.getElementById('view-offer-btn');
+        const acceptBtn = document.getElementById('accept-offer-btn');
+        const banner = document.getElementById('offer-banner');
+
+        doneBtn.addEventListener('click', () => {
+            postActions.style.display = 'flex';
+            viewOfferBtn.href = 'status.html?applicationId=' + encodeURIComponent(applicationId);
+        });
+
+        acceptBtn.addEventListener('click', async () => {
+            acceptBtn.disabled = true; acceptBtn.textContent = 'Accepting...';
+            try {
+                const res = await window.apiClient.post(window.apiClient.defaults.offers + '/' + encodeURIComponent(applicationId) + '/accept', {});
+                if (res.ok) {
+                    // show congratulations view instead of redirecting
+                    banner.classList.add('hidden');
+                    const card = document.querySelector('.card'); if (card) card.classList.add('hidden');
+                    const congrats = document.getElementById('congrats');
+                    if (congrats) {
+                        document.getElementById('congrats-app-id').textContent = applicationId || '-';
+                        congrats.classList.remove('hidden');
+                        // wire view/done links
+                        const viewLink = document.getElementById('congrats-view-offer');
+                        const doneLink = document.getElementById('congrats-status');
+                        if (viewLink) viewLink.href = 'status.html?applicationId=' + encodeURIComponent(applicationId);
+                        if (doneLink) doneLink.href = 'status.html?applicationId=' + encodeURIComponent(applicationId);
+                    }
+                } else {
+                    let msg = 'Failed to accept offer';
+                    try { const body = await res.json(); msg = body.message || JSON.stringify(body); } catch(e){}
+                    banner.textContent = msg; banner.classList.remove('hidden');
+                    acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
+                }
+            } catch (err) {
+                console.error(err);
+                banner.textContent = err.message || 'Network error'; banner.classList.remove('hidden');
+                acceptBtn.disabled = false; acceptBtn.textContent = 'Accept Offer';
+            }
+        });
+    })();
+</script>
+</body>
+</html>

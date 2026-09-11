@@ -26,14 +26,141 @@
 </header>
 
 <div class="container" id="main-container" style="margin-top:2rem; margin-bottom:2rem;">
-    <h1>Application Status</h1>
-
     <div id="status-banner" class="alert alert-info hidden"></div>
     <div id="status-area">
-        <div id="loading" class="flex"><div class="spinner"></div><div style="margin-left:0.75rem;">Waiting for application updates...</div></div>
+        <div id="product-intro" class="product-intro">
+            <div class="product-header-row">
+                <h2 class="product-title">Current Account</h2>
+                <button id="start-application" class="btn btn-primary product-start-btn" type="button">Start Application</button>
+            </div>
+
+            <div class="process-section">
+                <h3>The process</h3>
+                <div class="process-grid">
+                    <div class="process-item">
+                        <span class="step-number">1</span>
+                        <div class="step-copy">
+                            <h4>Product setup</h4>
+                            <p>Set up your business current account.</p>
+                        </div>
+                    </div>
+                    <div class="process-item">
+                        <span class="step-number">2</span>
+                        <div class="step-copy">
+                            <h4>Documents</h4>
+                            <p>Submit any required documents.</p>
+                        </div>
+                    </div>
+                    <div class="process-item">
+                        <span class="step-number">3</span>
+                        <div class="step-copy">
+                            <h4>Offer</h4>
+                            <p>Get an offer and review terms and conditions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
+<style>
+    .product-intro {
+        width: 100%;
+        padding-top: 1rem;
+    }
+    .product-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        border-bottom: 1px solid rgba(26,58,82,0.18);
+        padding-bottom: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+    .product-title {
+        font-size: clamp(2.6rem, 4vw, 5.2rem);
+        line-height: 1.02;
+        letter-spacing: -0.06em;
+        font-weight: 300;
+        color: #1a3a52;
+        flex: 1;
+        margin: 0;
+    }
+    .product-start-btn {
+        min-width: 270px;
+        min-height: 62px;
+        font-size: 1.1rem;
+        padding: 1rem 1.75rem;
+        border-radius: 10px;
+        background: #1a3a52;
+        color: white;
+        box-shadow: none;
+    }
+    .product-start-btn:hover {
+        background: #244b67;
+    }
+    .process-section {
+        padding-top: 0.5rem;
+    }
+    .process-section h3 {
+        font-size: clamp(2rem, 2vw, 2.8rem);
+        margin-bottom: 1.5rem;
+        color: #1a3a52;
+        font-weight: 400;
+    }
+    .process-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(26,58,82,0.18);
+    }
+    .process-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding-right: 1rem;
+    }
+    .step-number {
+        font-size: 2.1rem;
+        line-height: 1;
+        font-weight: 300;
+        color: #0b7a49;
+        min-width: 2rem;
+        padding-top: 0.2rem;
+    }
+    .step-copy h4 {
+        font-size: clamp(1.6rem, 2vw, 2.5rem);
+        color: #1a3a52;
+        font-weight: 300;
+        line-height: 1.2;
+        margin-bottom: 0.4rem;
+    }
+    .step-copy p {
+        font-size: 1.1rem;
+        color: #1a3a52;
+        max-width: 17ch;
+        line-height: 1.4;
+    }
+    @media (max-width: 900px) {
+        .product-header-row {
+            flex-wrap: wrap;
+        }
+        .product-controls {
+            order: 2;
+            margin-left: 0;
+            margin-right: 0;
+        }
+        .product-start-btn {
+            width: 100%;
+            min-width: auto;
+        }
+        .process-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
@@ -50,6 +177,13 @@
             window.location.href = 'index.html';
         });
 
+        const startApplicationBtn = document.getElementById('start-application');
+        if (startApplicationBtn) {
+            startApplicationBtn.addEventListener('click', function () {
+                window.location.href = 'apply.html';
+            });
+        }
+
         const params = new URLSearchParams(window.location.search);
         const paramAppId = params.get('applicationId');
         const sessAppId = sessionStorage.getItem('currentApplicationId');
@@ -59,7 +193,6 @@
         const statusBanner = document.getElementById('status-banner');
 
         if (!applicationId) {
-            statusArea.innerHTML = '<p>No application selected. Please submit an application first.</p>';
             return;
         }
 
@@ -98,6 +231,11 @@
                 : '';
             return `
                 <div style="margin-bottom:1rem;">
+                    <h3>Overview</h3>
+                    <p>The following will give you all the necessary documentation and information about the offer. This includes the pricing information and terms and condition.</p>
+                    <p><strong>If you have any queries about the offer, please contact your bank manager.</strong></p>
+                    <hr style="margin:0.75rem 0;" />
+
                     <div class="flex" style="justify-content:space-between; align-items:center;">
                         <div>
                             <p><strong>Application ID:</strong> ${offer.applicationId}</p>
@@ -264,11 +402,30 @@
                                 return;
                             }
                             if (docStatus === 'UPLOADED') {
+                                // Show congratulations-style summary after successful upload/signing
                                 statusArea.innerHTML = `
                                     <div class="container">
-                                        <h2>Awaiting provisioning approval</h2>
-                                        <p>Your signed document has been uploaded and is awaiting final provisioning approval. No action is required.</p>
-                                        ${renderProgress('UPLOADED')}
+                                        <h2>Congratulations!</h2>
+                                        <p class="muted">Awaiting provisioning approval</p>
+                                        <div class="card" style="padding:1rem; margin-top:1rem;">
+                                            <p>Thanks for accepting your offer. We'll be in touch if we need any further information or documentation from you or the associated persons. The application is currently awaiting provisioning approval. Once all authorised parties have accepted the offer your account will be activated within the business day.</p>
+                                            <p class="muted"><strong>Application reference:</strong> ${applicationId}</p>
+                                        </div>
+
+                                        <h3 style="margin-top:1.5rem;">What happens next?</h3>
+                                        <div style="display:flex; gap:2rem; margin-top:1rem; flex-wrap:wrap;">
+                                            <div style="flex:1; min-width:200px;">
+                                                <strong>Deposit books have been ordered</strong>
+                                                <p class="muted">You need to collect your deposit and cheque books from the branch.</p>
+                                            </div>
+                                            <div style="flex:1; min-width:200px;">
+                                                <strong>Proof of account letter will be emailed</strong>
+                                                <p class="muted">Once the account(s) is activated, we will send you an email with the details of the account(s).</p>
+                                            </div>
+                                        </div>
+
+                                        <p style="margin-top:1.5rem;" class="muted">For any questions, please contact your business manager.</p>
+                                        <div style="margin-top:1rem;"><a class="btn" href="status.html?applicationId=${encodeURIComponent(applicationId)}">Done</a></div>
                                     </div>
                                 `;
                                 return;
