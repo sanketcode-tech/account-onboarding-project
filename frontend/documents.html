@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Northbridge Bank — Documents</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<header class="site-header">
+    <div class="container header-inner">
+        <a href="index.html" class="brand" aria-label="Northbridge Bank home">
+            <span class="brand-mark">N</span>
+            <span>Northbridge Bank</span>
+        </a>
+
+        <nav class="header-nav" aria-label="Main navigation">
+            <a href="index.html">Home</a>
+            <a href="status.html">Status</a>
+            <a id="nav-login" href="login.html" class="btn btn-link">Log In</a>
+            <a id="nav-register" href="register.html" class="btn btn-primary">Register</a>
+            <button id="nav-logout" type="button" class="btn btn-ghost hidden">Log Out</button>
+        </nav>
+    </div>
+</header>
+
+<div class="container" style="margin-top:2rem; margin-bottom:2rem; max-width:720px;">
+    <h1>Required documents</h1>
+    <div class="card" style="padding:1rem; margin-top:1rem;">
+        <p>We don't need any documents from you at the moment.</p>
+        <p>If anything is required, we'll notify you.</p>
+    </div>
+
+    <div style="margin-top:1rem;">
+        <button id="docs-submit" class="btn btn-primary">Submit and continue</button>
+        <div id="docs-spinner" class="spinner hidden" aria-hidden="true" style="display:inline-block; margin-left:0.75rem;"></div>
+    </div>
+
+    <div id="docs-banner" class="alert alert-success hidden" style="margin-top:1rem;"></div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+    (function(){
+        if (!window.auth || !window.auth.getToken()) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        document.getElementById('nav-login').textContent = 'Dashboard';
+        document.getElementById('nav-login').href = 'status.html';
+        document.getElementById('nav-register').textContent = 'View Status';
+        document.getElementById('nav-register').href = 'status.html';
+        document.getElementById('nav-logout').classList.remove('hidden');
+        const __navLogout = document.getElementById('nav-logout'); if (__navLogout) __navLogout.addEventListener('click', () => { window.auth.logout(false); window.location.href = 'index.html'; });
+
+        const btn = document.getElementById('docs-submit');
+        const spinner = document.getElementById('docs-spinner');
+        const banner = document.getElementById('docs-banner');
+
+        function setLoading(v){ if(v){ spinner.classList.remove('hidden'); btn.disabled=true; } else { spinner.classList.add('hidden'); btn.disabled=false; } }
+        function showBanner(msg){ banner.textContent = msg; banner.classList.remove('hidden'); }
+
+        btn.addEventListener('click', async () => {
+            setLoading(true);
+            const applicationId = 'app-' + Date.now();
+            const event = { applicationId, applicantName: 'Anonymous', email: null, status: 'SUBMITTED', payload: {}, eventType: 'APPLICATION_SUBMITTED' };
+            try {
+                const res = await window.apiClient.post(window.apiClient.defaults.application + '/submit', event);
+                if (res.ok || res.status === 202) {
+                    sessionStorage.setItem('currentApplicationId', applicationId);
+                    showBanner('Submitted. Application ID: ' + applicationId);
+                    setTimeout(() => { window.location.href = 'offer.html?applicationId=' + encodeURIComponent(applicationId); }, 1200);
+                } else {
+                    let msg = 'Failed to submit';
+                    try { const body = await res.json(); msg = body.message || JSON.stringify(body); } catch(e){}
+                    showBanner(msg);
+                }
+            } catch (err) {
+                console.error(err); showBanner(err.message || 'Network error');
+            } finally { setLoading(false); }
+        });
+    })();
+</script>
+</body>
+</html>
