@@ -285,16 +285,18 @@ h1 {
 }
 
 .step-number {
-   display: inline-flex;
-   width: 2.5rem;
-   height: 2.5rem;
-   border-radius: 50%;
-   background: #1a3a52;
-   color: white;
-   align-items: center;
-   justify-content: center;
-   font-weight: 800;
-   margin-bottom: 1rem;
+   display: inline-block;
+   width: auto;
+   height: auto;
+   border-radius: 0;
+   background: transparent;
+   color: #2f9d7d; /* project green */
+   align-items: initial;
+   justify-content: initial;
+   font-weight: 700;
+   margin-bottom: 0.25rem;
+   padding: 0 0.5rem 0 0;
+   font-size: 1.15rem;
 }
 
 .step-card h3 {
