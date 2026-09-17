@@ -14,10 +14,11 @@ import java.nio.file.Paths;
  * Usage:
  *   java -cp ".:target/classes:target/lib/*" com.northbridge.onboarding.util.BPMNDeploymentTool \
  *        --file /path/to/current-account-onboarding.bpmn \
- *        --cluster-id 5242284f-4103-47a5-9304-dec81f78988b \
- *        --region sin-2 \
- *        --client-id VZOsJ3shzGhvQjHk6gNI_qTIPm_NmWWG \
- *        --client-secret "RgKkjBvy4cSxjb8bBeKK9HqJP3E5C3P2i5d-~Mt8R1YPp7m5sL.UBVfPO9rvjMxZ"
+ *        --cluster-id <your-camunda-cluster-id> \
+ *        --region <your-camunda-region> \
+ *        --client-id <your-camunda-client-id> \
+ *        --client-secret "<your-camunda-client-secret>" \
+ *        (or run with --env true to load CAMUNDA_* values from environment variables)
  */
 @Slf4j
 public class BPMNDeploymentTool {
@@ -219,10 +220,10 @@ public class BPMNDeploymentTool {
         System.out.println("\nExample:");
         System.out.println("java com.northbridge.onboarding.util.BPMNDeploymentTool \\");
         System.out.println("  --file current-account-onboarding.bpmn \\");
-        System.out.println("  --cluster-id 84881dbf-3013-40a8-b7d9-13bb69d84383 \\");
-        System.out.println("  --region sin-2 \\");
-        System.out.println("  --client-id jrVPbzY1rMf4yHOz-oi_ZTo_KO6Vkjqc \\");
-        System.out.println("  --client-secret \"resAKS.g7hHHy9xlt7MPWArH_CkL_6NMq2GFVxdk-tll.wU1jYMl1O_lZS~IP8Fv\"\n");
+        System.out.println("  --cluster-id <your-camunda-cluster-id> \\");
+        System.out.println("  --region <your-camunda-region> \\");
+        System.out.println("  --client-id <your-camunda-client-id> \\");
+        System.out.println("  --client-secret \"<your-camunda-client-secret>\"\n");
     }
 
     /**

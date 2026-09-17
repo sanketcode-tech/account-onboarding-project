@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+com.northbridge.common.config.WslKafkaEnvironmentPostProcessor
