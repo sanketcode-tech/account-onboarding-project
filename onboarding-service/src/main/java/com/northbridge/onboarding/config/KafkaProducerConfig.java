@@ -23,13 +23,35 @@ import java.util.Map;
 @EnableKafka
 public class KafkaProducerConfig {
 
-    @Value("${spring.kafka.bootstrap-servers:${KAFKA_BOOTSTRAP_SERVERS:172.21.159.30:9092}}")
+    @Value("${spring.kafka.bootstrap-servers:${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}}")
     private String bootstrapServers;
+
+    private String resolveBootstrap(String configured) {
+        if (configured == null || configured.isBlank()) return configured;
+        if (!configured.contains("localhost") && !configured.contains("127.0.0.1")) return configured;
+        try {
+            ProcessBuilder pb = new ProcessBuilder("wsl", "hostname", "-I");
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()))) {
+                String line = r.readLine();
+                if (line == null || line.isBlank()) return configured;
+                String ip = line.trim().split("\\s+")[0];
+                if (ip == null || ip.isBlank()) return configured;
+                String resolved = ip + ":9092";
+                System.out.println("Resolved WSL Kafka bootstrap: " + resolved);
+                return resolved;
+            }
+        } catch (Exception ex) {
+            System.out.println("WSL IP detection failed: " + ex.getMessage());
+            return configured;
+        }
+    }
 
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
-        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, resolveBootstrap(bootstrapServers));
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
@@ -45,7 +67,7 @@ public class KafkaProducerConfig {
     @Bean
     public ConsumerFactory<String, String> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, resolveBootstrap(bootstrapServers));
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "onboarding-service");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);

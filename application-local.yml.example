@@ -1,0 +1,44 @@
+# Example local overrides for development.
+# Copy this file to application-local.yml (gitignored) and edit values as needed for your environment.
+# Do NOT commit real secrets. Use .env or a secret manager for credentials.
+
+spring:
+  # Use localhost for Kafka in local runs; use setup-wsl-env.ps1 to generate .env with WSL IP if Kafka runs in WSL
+  kafka:
+    bootstrap-servers: localhost:9092
+
+  # Local MongoDB connection example (adjust as needed or leave blank to use in-memory/test DBs)
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/onboarding_local
+
+# Server port override (set per-service as needed)
+server:
+  port: 8082
+
+# Camunda client placeholders (leave blank or provide via environment variables)
+camunda:
+  client:
+    cloud:
+      cluster-id: ""
+    auth:
+      client-id: ""
+      client-secret: ""
+
+# Enable process deployer for local testing if you want automatic BPMN/DMN/forms deployment
+process:
+  deployer:
+    enabled: false
+
+bpmn:
+  resource:
+    path: /bpmn/current-account-onboarding.bpmn
+
+# CORS allowed origins for frontend (comma separated)
+cors:
+  allowed-origins: http://localhost:63342
+
+# Notes:
+# - application-local.yml is listed in .gitignore and will remain local when copied.
+# - For WSL-hosted Kafka, run setup-wsl-env.ps1 to generate a .env that points SPRING_KAFKA_BOOTSTRAP_SERVERS to the WSL IP.
+# - Keep secrets out of this repo; prefer environment variables or a secure secret store.

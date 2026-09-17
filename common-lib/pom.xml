@@ -17,6 +17,12 @@
     <description>Shared DTOs, events, and enums for Northbridge Onboarding microservices</description>
 
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot</artifactId>
+            <version>4.1.0</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- Lombok (optional) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
