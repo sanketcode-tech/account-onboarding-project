@@ -415,6 +415,13 @@
 <script src="js/auth.js"></script>
 <script>
     (function(){
+        const STORAGE_KEY = 'applicationDraft';
+
+        // Load draft early (DOM is ready because script is at document end)
+        let draftRaw = null;
+        try { draftRaw = sessionStorage.getItem(STORAGE_KEY); } catch (e) { draftRaw = null; }
+        let draft = draftRaw ? JSON.parse(draftRaw) : { step: 1, data: {} };
+
         // Protect page — require login
         if (!window.auth || !window.auth.getToken()) {
             window.location.href = 'login.html';
@@ -453,9 +460,48 @@
             });
         }
 
-        document.getElementById('next-btn-1')?.addEventListener('click', () => { showStep(1); });
-        document.getElementById('back-btn-2')?.addEventListener('click', () => { showStep(0); });
-        showStep(0);
+        // Save values for a given step (stepNumber is 1-based)
+        function saveStepValues(stepNumber) {
+            const stepEl = document.querySelector(`.step[data-step="${stepNumber}"]`);
+            if (!stepEl) return;
+            const inputs = Array.from(stepEl.querySelectorAll('input, textarea, select'));
+            const stepData = {};
+            inputs.forEach(inp => {
+                if (!inp.id) return; // only save elements with id
+                if (inp.type === 'checkbox') {
+                    stepData[inp.id] = inp.checked;
+                } else if (inp.type === 'number') {
+                    stepData[inp.id] = inp.value === '' ? '' : inp.value;
+                } else {
+                    stepData[inp.id] = inp.value;
+                }
+            });
+            // Merge into draft.data
+            draft.data = draft.data || {};
+            draft.data = Object.assign({}, draft.data, stepData);
+            // Update last visited step (store as 1-based)
+            draft.step = Math.max(draft.step || 1, stepNumber + 0);
+            try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft)); } catch (e) { /* ignore storage errors */ }
+        }
+
+        function populateFieldsFromDraft() {
+            if (!draft || !draft.data) return;
+            Object.entries(draft.data).forEach(([id, val]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (el.type === 'checkbox') el.checked = !!val;
+                else el.value = val ?? '';
+            });
+        }
+
+        // Restore fields early and jump to last step
+        populateFieldsFromDraft();
+        const initialStepIndex = (draft && draft.step) ? Math.max(0, (draft.step - 1)) : 0;
+        showStep(initialStepIndex);
+
+        // Wire navigation buttons to save step before moving
+        document.getElementById('next-btn-1')?.addEventListener('click', () => { saveStepValues(1); showStep(1); });
+        document.getElementById('back-btn-2')?.addEventListener('click', () => { saveStepValues(2); showStep(0); });
 
         const thankYouDoneBtn = document.getElementById('thank-you-done-btn');
         if (thankYouDoneBtn) {
@@ -468,8 +514,9 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault(); clearError(); clearSuccess(); setLoading(true);
-
-            const applicationId = String(Date.now()).slice(-7);
+                // ensure latest step saved before submit
+            saveStepValues(1);
+                const applicationId = String(Date.now()).slice(-7);
             const fullName = document.getElementById('fullName').value.trim();
             const email = document.getElementById('email').value.trim();
             const payload = {
@@ -506,6 +553,8 @@
             try {
                 const res = await window.apiClient.post(window.apiClient.defaults.application + '/submit', event);
                 if (res.status === 202 || res.ok) {
+                    // Clear draft on successful submit
+                    try { sessionStorage.removeItem(STORAGE_KEY); } catch (e) { }
                     sessionStorage.setItem('currentApplicationId', applicationId);
                     document.body.classList.add('thank-you-visible');
                     form.classList.add('hidden');

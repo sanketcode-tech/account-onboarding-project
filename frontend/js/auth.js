@@ -31,7 +31,9 @@
     }
 
     function logout(redirectToLogin = true) {
+        // Clear any authentication state and ephemeral frontend drafts on logout
         clearToken();
+        try { sessionStorage.removeItem('applicationDraft'); } catch (e) { /* ignore if storage unavailable */ }
         if (redirectToLogin) window.location.href = 'index.html';
     }
 
