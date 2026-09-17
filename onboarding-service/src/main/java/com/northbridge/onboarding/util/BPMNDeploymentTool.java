@@ -14,10 +14,10 @@ import java.nio.file.Paths;
  * Usage:
  *   java -cp ".:target/classes:target/lib/*" com.northbridge.onboarding.util.BPMNDeploymentTool \
  *        --file /path/to/current-account-onboarding.bpmn \
- *        --cluster-id 84881dbf-3013-40a8-b7d9-13bb69d84383 \
+ *        --cluster-id 5242284f-4103-47a5-9304-dec81f78988b \
  *        --region sin-2 \
- *        --client-id jrVPbzY1rMf4yHOz-oi_ZTo_KO6Vkjqc \
- *        --client-secret "resAKS.g7hHHy9xlt7MPWArH_CkL_6NMq2GFVxdk-tll.wU1jYMl1O_lZS~IP8Fv"
+ *        --client-id VZOsJ3shzGhvQjHk6gNI_qTIPm_NmWWG \
+ *        --client-secret "RgKkjBvy4cSxjb8bBeKK9HqJP3E5C3P2i5d-~Mt8R1YPp7m5sL.UBVfPO9rvjMxZ"
  */
 @Slf4j
 public class BPMNDeploymentTool {
