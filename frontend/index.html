@@ -111,8 +111,8 @@
                 loginLink.textContent = 'Dashboard';
                 loginLink.href = 'status.html';
 
-                registerLink.textContent = 'Progress tracking';
-                registerLink.href = 'status.html';
+                // hide the duplicate progress link; keep a single Dashboard entry in the header
+                registerLink.classList.add('hidden');
 
                 heroCta.textContent = 'View Application';
                 heroCta.href = 'status.html';

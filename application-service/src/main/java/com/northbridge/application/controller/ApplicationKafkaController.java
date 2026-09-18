@@ -20,6 +20,7 @@ public class ApplicationKafkaController {
 
     private final KafkaProducerService kafkaProducerService;
     private final com.northbridge.application.auth.AuthClient authClient;
+    private final com.northbridge.application.service.ApplicationService applicationService;
 
     /**
      * Test endpoint - Send a simple application event to Kafka
@@ -68,6 +69,9 @@ public class ApplicationKafkaController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid JWT token");
             }
 
+            // Persist Application row immediately with status=SUBMITTED using JWT-derived customerId
+            applicationService.createSubmittedApplication(event);
+
             kafkaProducerService.sendApplicationEvent(event);
             log.info("Application submitted successfully: {} for customerId={}", event.getApplicationId(), event.getCustomerId());
             return ResponseEntity.status(HttpStatus.ACCEPTED)
@@ -87,6 +91,28 @@ public class ApplicationKafkaController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Application Service is running");
+    }
+
+    /**
+     * Return the most recent application for the authenticated customer.
+     * The customerId is derived from the validated JWT via AuthClient; do not trust client parameters.
+     */
+    @GetMapping("/my-application")
+    public ResponseEntity<?> getMyApplication(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        try {
+            String subject = authClient.validateAndGetSubject(authorization);
+            var opt = applicationService.getLatestByCustomerId(subject);
+            if (opt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No application found for this customer");
+            }
+            var app = opt.get();
+            return ResponseEntity.ok(java.util.Map.of("applicationId", app.getApplicationId(), "status", app.getStatus()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing or invalid JWT token");
+        } catch (Exception ex) {
+            log.error("Error fetching my-application", ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving application");
+        }
     }
 
 }

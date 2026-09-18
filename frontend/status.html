@@ -166,7 +166,7 @@
 <script src="js/api.js"></script>
 <script src="js/auth.js"></script>
 <script>
-    (function(){
+    (async function(){
         // Require login
         if (!window.auth || !window.auth.getToken()) { window.location.href = 'login.html'; return; }
         document.getElementById('nav-login').textContent = 'Dashboard';
@@ -181,20 +181,44 @@
 
         const startApplicationBtn = document.getElementById('start-application');
         if (startApplicationBtn) {
+            // hide start button until backend confirms there is no application for this customer
+            startApplicationBtn.classList.add('hidden');
             startApplicationBtn.addEventListener('click', function () {
                 window.location.href = 'apply.html';
             });
         }
 
-        const params = new URLSearchParams(window.location.search);
-        const paramAppId = params.get('applicationId');
-        const sessAppId = sessionStorage.getItem('currentApplicationId');
-        const applicationId = paramAppId || sessAppId;
-
         const statusArea = document.getElementById('status-area');
         const statusBanner = document.getElementById('status-banner');
 
+        let applicationId = null;
+        // Ask backend for most recent application for this authenticated customer
+        try {
+            const res = await window.apiClient.get(window.apiClient.defaults.application + '/my-application');
+            if (res.status === 200) {
+                const j = await res.json();
+                applicationId = j.applicationId;
+                if (applicationId) sessionStorage.setItem('currentApplicationId', applicationId);
+            } else if (res.status === 404) {
+                // Backend explicitly confirms no application exists for this customer
+                if (startApplicationBtn) startApplicationBtn.classList.remove('hidden');
+                return; // show default start view
+            }
+        } catch (err) {
+            // network/auth error — fall back to client-stored state below
+        }
+
+        // If backend didn't provide an applicationId, fall back to URL/session storage
         if (!applicationId) {
+            const params = new URLSearchParams(window.location.search);
+            const paramAppId = params.get('applicationId');
+            const sessAppId = sessionStorage.getItem('currentApplicationId');
+            applicationId = paramAppId || sessAppId;
+        }
+
+        if (!applicationId) {
+            // reveal start button if no app known client-side
+            if (startApplicationBtn) startApplicationBtn.classList.remove('hidden');
             return;
         }
 
